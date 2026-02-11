@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { opportunities } from '../data/mockData';
 
 export default function CreateQuoteModal({ onClose, onSave }) {
@@ -8,6 +8,20 @@ export default function CreateQuoteModal({ onClose, onSave }) {
         supplyStart: '',
         supplyEnd: ''
     });
+
+    const [opportunitiesList, setOpportunitiesList] = useState(opportunities);
+
+    // Load opportunities from local storage to include newly created ones
+    useEffect(() => {
+        const saved = localStorage.getItem('opportunities');
+        if (saved) {
+            try {
+                setOpportunitiesList(JSON.parse(saved));
+            } catch (e) {
+                console.error('Failed to parse opportunities from local storage');
+            }
+        }
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -19,8 +33,8 @@ export default function CreateQuoteModal({ onClose, onSave }) {
             alert('Please fill all mandatory fields');
             return;
         }
-        // Find the selected opportunity object
-        const selectedOpp = opportunities.find(opp => opp.projectName === formData.opportunity);
+        // Find the selected opportunity object from the dynamic list
+        const selectedOpp = opportunitiesList.find(opp => opp.projectName === formData.opportunity);
         if (!selectedOpp) {
             alert('Invalid Opportunity');
             return;
@@ -73,7 +87,7 @@ export default function CreateQuoteModal({ onClose, onSave }) {
                                 className="input-field"
                             >
                                 <option value="">Search Opportunity...</option>
-                                {opportunities.map(opp => (
+                                {opportunitiesList.map(opp => (
                                     <option key={opp.id} value={opp.projectName}>
                                         {opp.projectName} ({opp.stage})
                                     </option>

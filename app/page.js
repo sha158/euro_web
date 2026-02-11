@@ -3,11 +3,13 @@ import StatCard from './components/StatCard';
 import SalesChart from './components/SalesChart';
 import ActivityFeed from './components/ActivityFeed';
 import StageChart from './components/StageChart';
+import SplashScreen from './components/SplashScreen';
 import { dashboardStats, salesAnalytics, opportunityStages, recentActivities } from './data/mockData';
 
 export default function Dashboard() {
   return (
     <>
+      <SplashScreen />
       <TopBar title="Dashboard" subtitle="Welcome back, Admin User" />
 
       <div style={{ padding: '32px' }}>

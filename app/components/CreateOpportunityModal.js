@@ -17,8 +17,6 @@ export default function CreateOpportunityModal({ onClose, onSave }) {
         country: 'India',
         pincode: '',
         note: '',
-        managedBy: '',
-        stage: 'Lead',
         source: '',
         billTo: '',
         marketingPartner: '',
@@ -43,8 +41,8 @@ export default function CreateOpportunityModal({ onClose, onSave }) {
     };
 
     const handleSubmit = () => {
-        if (step === 2 && (!formData.managedBy || !formData.stage || !formData.source)) {
-            alert('Please fill mandatory fields: Managed By, Stage, and Source');
+        if (step === 2 && !formData.source) {
+            alert('Please fill mandatory fields: Source');
             return;
         }
         onSave(formData);
@@ -315,38 +313,6 @@ export default function CreateOpportunityModal({ onClose, onSave }) {
                     ) : (
                         <div className="fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
 
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                                    Managed By <span style={{ color: 'var(--status-error)' }}>*</span>
-                                </label>
-                                <select
-                                    name="managedBy"
-                                    value={formData.managedBy}
-                                    onChange={handleChange}
-                                    className="input-field"
-                                >
-                                    <option value="">Select User</option>
-                                    {teamMembers.map(member => (
-                                        <option key={member.id} value={member.name}>{member.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                                    Stage <span style={{ color: 'var(--status-error)' }}>*</span>
-                                </label>
-                                <select
-                                    name="stage"
-                                    value={formData.stage}
-                                    onChange={handleChange}
-                                    className="input-field"
-                                >
-                                    {opportunityStageOptions.map(opt => (
-                                        <option key={opt} value={opt}>{opt}</option>
-                                    ))}
-                                </select>
-                            </div>
 
                             <div>
                                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>

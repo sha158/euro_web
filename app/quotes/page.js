@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { quotes } from '../data/mockData';
 import TopBar from '../components/TopBar';
@@ -7,10 +7,29 @@ import Table from '../components/Table';
 import CreateQuoteModal from '../components/CreateQuoteModal';
 
 export default function QuotesPage() {
+    // Initialize with mock data, updated by localStorage
+    const [quotesData, setQuotesData] = useState(quotes);
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('active');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Load from LocalStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('quotes');
+        if (saved) {
+            try {
+                setQuotesData(JSON.parse(saved));
+            } catch (e) {
+                console.error('Failed to parse quotes from local storage');
+            }
+        }
+    }, []);
+
+    // Save to LocalStorage
+    useEffect(() => {
+        localStorage.setItem('quotes', JSON.stringify(quotesData));
+    }, [quotesData]);
 
     // Tabs Configuration
     const tabs = [
@@ -21,7 +40,7 @@ export default function QuotesPage() {
     ];
 
     // Filter Logic
-    const filteredData = quotes.filter(quote => {
+    const filteredData = quotesData.filter(quote => {
         // Tab Filter
         if (activeTab === 'active' && quote.status !== 'active') return false;
         if (activeTab === 'won' && quote.status !== 'won') return false;
@@ -108,9 +127,21 @@ export default function QuotesPage() {
     ];
 
     const handleCreate = (data) => {
-        console.log('Creating quote for opportunity:', data);
+        const newQuote = {
+            id: `Q-${Math.floor(Math.random() * 10000)}`,
+            projectName: data.opportunity,
+            revisionTitle: 'Initial Quote',
+            revisionNo: '001',
+            contact: data.opportunityDetails?.contact || 'Unknown',
+            area: 0,
+            value: 0,
+            status: 'active',
+            date: new Date().toISOString(),
+            ...data
+        };
+
+        setQuotesData(prev => [newQuote, ...prev]);
         setIsModalOpen(false);
-        alert('Quote created successfully!');
     };
 
     return (

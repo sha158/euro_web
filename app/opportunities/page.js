@@ -1,14 +1,33 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { opportunities } from '../data/mockData';
 import TopBar from '../components/TopBar';
 import Table from '../components/Table';
 import CreateOpportunityModal from '../components/CreateOpportunityModal';
 
 export default function OpportunitiesPage() {
+    // Initialize with mock data, will be updated by useEffect if localStorage exists
+    const [opportunitiesData, setOpportunitiesData] = useState(opportunities);
     const [activeTab, setActiveTab] = useState('active');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Load from LocalStorage on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('opportunities');
+        if (saved) {
+            try {
+                setOpportunitiesData(JSON.parse(saved));
+            } catch (e) {
+                console.error('Failed to parse opportunities from local storage');
+            }
+        }
+    }, []);
+
+    // Save to LocalStorage whenever data changes
+    useEffect(() => {
+        localStorage.setItem('opportunities', JSON.stringify(opportunitiesData));
+    }, [opportunitiesData]);
 
     // Tabs Configuration
     const tabs = [
@@ -19,7 +38,7 @@ export default function OpportunitiesPage() {
     ];
 
     // Filter Logic
-    const filteredData = opportunities.filter(opp => {
+    const filteredData = opportunitiesData.filter(opp => {
         // Tab Filter
         if (activeTab === 'active' && opp.status !== 'active') return false;
         if (activeTab === 'won' && opp.status !== 'won') return false;
@@ -69,7 +88,7 @@ export default function OpportunitiesPage() {
             accessor: 'estimatedValue',
             render: (row) => (
                 <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                    ₹{(row.estimatedValue / 100000).toFixed(2)} L
+                    ₹{(typeof row.estimatedValue === 'number' ? row.estimatedValue / 100000 : 0).toFixed(2)} L
                 </span>
             )
         },
@@ -103,10 +122,23 @@ export default function OpportunitiesPage() {
     };
 
     const handleCreate = (data) => {
-        console.log('Creating opportunity:', data);
+        const newOpportunity = {
+            id: `OPP-${Math.floor(Math.random() * 10000)}`, // Simple ID generation
+            projectName: data.projectName,
+            contact: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+            contactNumber: data.phone || 'N/A',
+            location: data.city || 'Unknown',
+            account: data.projectName, // Defaulting account to project name if not distinct
+            managedBy: 'Admin', // Default value since field was removed
+            stage: 'Lead', // Default stage
+            status: 'active', // Default status to appear in Active/All
+            estimatedValue: Number(data.estimatedValue) || 0,
+            ...data
+        };
+
+        setOpportunitiesData(prev => [newOpportunity, ...prev]);
         setIsModalOpen(false);
-        // In a real app, you would add this to the list via API
-        alert('Opportunity created successfully!');
+        // Alert removed for smoother experience
     };
 
     return (
