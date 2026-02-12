@@ -82,6 +82,34 @@ export default function DesignConfiguratorPage({ params }) {
     const canUndo = historyRef.current.past.length > 0;
     const canRedo = historyRef.current.future.length > 0;
 
+    // Clear design to default state
+    const handleClear = useCallback(() => {
+        // Reset window structure to single glass panel
+        setWindowStructure({
+            type: 'glass',
+            id: '1'
+        });
+
+        // Reset dimensions to default (1500 x 1500)
+        setConfig(prev => ({
+            ...prev,
+            width: 1500,
+            height: 1500
+        }));
+
+        // Clear history
+        historyRef.current.past = [];
+        historyRef.current.future = [];
+        setHistoryVersion(v => v + 1);
+
+        // Reset panel ID counter
+        panelIdCounter.current = 1;
+
+        // Clear selections
+        setSelectedPanelId(null);
+        setSelectedPanelPath([]);
+    }, []);
+
     // Keyboard shortcuts for undo/redo
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -503,25 +531,41 @@ export default function DesignConfiguratorPage({ params }) {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <button style={{ position: 'relative', background: 'none', border: 'none' }}>
-                        <span style={{ position: 'absolute', top: '-1px', right: '-2px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%' }}></span>
-                        🔔
+                    <button style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>
+                        <span style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%' }}></span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
                     </button>
 
                     <div style={{ display: 'flex', background: '#3b82f6', borderRadius: '6px', overflow: 'hidden' }}>
                         <button style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', fontWeight: '500', fontSize: '13px', cursor: 'pointer' }}>
                             Inside
                         </button>
-                        <button style={{ padding: '8px 12px', background: '#2563eb', color: 'white', border: 'none', borderLeft: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer' }}>
-                            💾 Save ▾
+                        <button style={{ padding: '8px 16px', background: '#2563eb', color: 'white', border: 'none', borderLeft: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '500' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                            Save
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
                         </button>
                     </div>
 
-                    <button style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#64748b' }}>
-                        -
+                    <button style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
                     </button>
-                    <button onClick={() => router.back()} style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#ef4444' }}>
-                        ✕
+                    <button onClick={() => router.back()} style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -702,7 +746,10 @@ export default function DesignConfiguratorPage({ params }) {
                                 </div>
                             </div>
                             <button onClick={() => setIsSidebarOpen(true)} style={{ marginLeft: '12px', border: 'none', background: '#f1f5f9', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                                ✎
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
                             </button>
                         </div>
                     )}
@@ -725,6 +772,7 @@ export default function DesignConfiguratorPage({ params }) {
                         isCustomMullionMode={isCustomMullionMode}
                         onCustomMullionDraw={handleCustomMullionDraw}
                         onCustomMullionCancel={() => setIsCustomMullionMode(false)}
+                        onClear={handleClear}
                     />
                 </div>
             </div>

@@ -149,7 +149,6 @@ function renderWindowNode(node, x, y, width, height, scale, selectedPanelId, dra
     const innerFrameW = 6;   // Inner frame border
     const totalFrame = outerFrameW + midFrameW + innerFrameW; // 24px total
     const glassInset = totalFrame;
-    const cornerRadius = 3;  // Rounded corners
 
     if (node.type === 'glass') {
         const displayX = x * scale;
@@ -161,29 +160,12 @@ function renderWindowNode(node, x, y, width, height, scale, selectedPanelId, dra
 
         const uniqueId = node.id + '-' + path.join('-');
 
-        // --- SVG Gradient Definitions for 3D depth ---
+        // Wireframe style constants
+        const frameColor = "#4a5568";
+        const frameStrokeWidth = 1.5;
+
         elements.push(
             <defs key={`defs-${uniqueId}`}>
-                {/* Outer frame gradient - dark edge */}
-                <linearGradient id={`outerFrameGrad-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#a0a0a0" />
-                    <stop offset="50%" stopColor="#b8b8b0" />
-                    <stop offset="100%" stopColor="#909090" />
-                </linearGradient>
-                {/* Mid frame gradient - main profile body, lighter */}
-                <linearGradient id={`midFrameGrad-${uniqueId}`} x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#f5f5f0" />
-                    <stop offset="25%" stopColor="#eeeeea" />
-                    <stop offset="75%" stopColor="#e0e0d8" />
-                    <stop offset="100%" stopColor="#d5d5cd" />
-                </linearGradient>
-                {/* Inner frame gradient - subtle inset */}
-                <linearGradient id={`innerFrameGrad-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#c8c8c0" />
-                    <stop offset="50%" stopColor="#d8d8d0" />
-                    <stop offset="100%" stopColor="#b8b8b0" />
-                </linearGradient>
-                {/* Glass grid pattern */}
                 <pattern id={`glassGrid-${uniqueId}`} width="15" height="15" patternUnits="userSpaceOnUse">
                     <line x1="0" y1="0" x2="0" y2="15" stroke="#c8e6f8" strokeWidth="0.4" />
                     <line x1="0" y1="0" x2="15" y2="0" stroke="#c8e6f8" strokeWidth="0.4" />
@@ -191,64 +173,43 @@ function renderWindowNode(node, x, y, width, height, scale, selectedPanelId, dra
             </defs>
         );
 
-        // --- Layer 1: Outer frame (outermost border, dark) ---
+        // --- White fill for frame body (solid white frame area) ---
         elements.push(
-            <rect
-                key={`outer-frame-${uniqueId}`}
-                x={displayX}
-                y={displayY}
-                width={displayWidth}
-                height={displayHeight}
-                rx={cornerRadius + 2}
-                ry={cornerRadius + 2}
-                fill={`url(#outerFrameGrad-${uniqueId})`}
-                stroke="#8a8a82"
-                strokeWidth="1.2"
-            />
+            <rect key={`frame-fill-${uniqueId}`}
+                x={displayX} y={displayY}
+                width={displayWidth} height={displayHeight}
+                fill="white" stroke="none" />
         );
 
-        // --- Layer 2: Mid frame (main profile body, lighter) ---
+        // --- Wireframe Frame: 3 concentric rectangles (no fill, stroke only) ---
+        // Line 1 - outer edge
         elements.push(
-            <rect
-                key={`mid-frame-${uniqueId}`}
-                x={displayX + outerFrameW}
-                y={displayY + outerFrameW}
-                width={displayWidth - outerFrameW * 2}
-                height={displayHeight - outerFrameW * 2}
-                rx={cornerRadius + 1}
-                ry={cornerRadius + 1}
-                fill={`url(#midFrameGrad-${uniqueId})`}
-                stroke="#b0b0a8"
-                strokeWidth="0.8"
-            />
+            <rect key={`frame-wire1-${uniqueId}`}
+                x={displayX} y={displayY}
+                width={displayWidth} height={displayHeight}
+                fill="none" stroke={frameColor} strokeWidth={frameStrokeWidth} />
+        );
+        // Line 2 - middle profile
+        elements.push(
+            <rect key={`frame-wire2-${uniqueId}`}
+                x={displayX + 12} y={displayY + 12}
+                width={displayWidth - 24} height={displayHeight - 24}
+                fill="none" stroke={frameColor} strokeWidth={frameStrokeWidth} />
+        );
+        // Line 3 - inner edge (glass boundary)
+        elements.push(
+            <rect key={`frame-wire3-${uniqueId}`}
+                x={displayX + 24} y={displayY + 24}
+                width={displayWidth - 48} height={displayHeight - 48}
+                fill="none" stroke={frameColor} strokeWidth={frameStrokeWidth} />
         );
 
-        // --- Layer 3: Inner frame (just before glass, inset border) ---
-        elements.push(
-            <rect
-                key={`inner-frame-${uniqueId}`}
-                x={displayX + outerFrameW + midFrameW}
-                y={displayY + outerFrameW + midFrameW}
-                width={displayWidth - (outerFrameW + midFrameW) * 2}
-                height={displayHeight - (outerFrameW + midFrameW) * 2}
-                rx={cornerRadius}
-                ry={cornerRadius}
-                fill={`url(#innerFrameGrad-${uniqueId})`}
-                stroke="#a0a098"
-                strokeWidth="0.6"
-            />
-        );
-
-        // --- Corner mitre lines (diagonal lines at each corner) ---
+        // --- Corner mitre lines (connecting outer to inner at each corner) ---
         const mitreLen = totalFrame;
-        // Top-left
-        elements.push(<line key={`mitre-tl-${uniqueId}`} x1={displayX} y1={displayY} x2={displayX + mitreLen} y2={displayY + mitreLen} stroke="#a0a098" strokeWidth="0.7" />);
-        // Top-right
-        elements.push(<line key={`mitre-tr-${uniqueId}`} x1={displayX + displayWidth} y1={displayY} x2={displayX + displayWidth - mitreLen} y2={displayY + mitreLen} stroke="#a0a098" strokeWidth="0.7" />);
-        // Bottom-left
-        elements.push(<line key={`mitre-bl-${uniqueId}`} x1={displayX} y1={displayY + displayHeight} x2={displayX + mitreLen} y2={displayY + displayHeight - mitreLen} stroke="#a0a098" strokeWidth="0.7" />);
-        // Bottom-right
-        elements.push(<line key={`mitre-br-${uniqueId}`} x1={displayX + displayWidth} y1={displayY + displayHeight} x2={displayX + displayWidth - mitreLen} y2={displayY + displayHeight - mitreLen} stroke="#a0a098" strokeWidth="0.7" />);
+        elements.push(<line key={`mitre-tl-${uniqueId}`} x1={displayX} y1={displayY} x2={displayX + mitreLen} y2={displayY + mitreLen} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
+        elements.push(<line key={`mitre-tr-${uniqueId}`} x1={displayX + displayWidth} y1={displayY} x2={displayX + displayWidth - mitreLen} y2={displayY + mitreLen} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
+        elements.push(<line key={`mitre-bl-${uniqueId}`} x1={displayX} y1={displayY + displayHeight} x2={displayX + mitreLen} y2={displayY + displayHeight - mitreLen} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
+        elements.push(<line key={`mitre-br-${uniqueId}`} x1={displayX + displayWidth} y1={displayY + displayHeight} x2={displayX + displayWidth - mitreLen} y2={displayY + displayHeight - mitreLen} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
 
         // --- Glass Pane ---
         let fillColor = "#d4eefa";
@@ -410,29 +371,46 @@ function renderWindowNode(node, x, y, width, height, scale, selectedPanelId, dra
 
         const uniqueId = (node.children[0]?.id || 'diag') + '-' + path.join('-');
 
-        // --- Frame layers (same as glass node) ---
-        const outerFrameWD = 6;
-        const midFrameWD = 12;
-        const cornerRadiusD = 3;
+        // --- Calculate mullion geometry first (needed for clipping) ---
+        const dxM = lineX2 - lineX1;
+        const dyM = lineY2 - lineY1;
+
+        // Extend the mullion to the middle frame line (between line 2 and line 3)
+        // The glass edge is at offset 24 (line 3), we extend to offset 12 (line 2) = 12px depth
+        const extendDepth = 12;
+        const len = Math.sqrt(dxM * dxM + dyM * dyM);
+        const dirX = dxM / len;
+        const dirY = dyM / len;
+
+        // Compute extension along mullion direction for each endpoint based on frame edge
+        const getExtendDist = (edge) => {
+            if (edge === 'left' || edge === 'right') {
+                return Math.abs(extendDepth / dirX); // horizontal depth
+            } else if (edge === 'top' || edge === 'bottom') {
+                return Math.abs(extendDepth / dirY); // vertical depth
+            }
+            return extendDepth;
+        };
+
+        const spEdgeTemp = getEdgeFromNormalized(sp);
+        const epEdgeTemp = getEdgeFromNormalized(ep);
+        const extendDist1 = getExtendDist(spEdgeTemp);
+        const extendDist2 = getExtendDist(epEdgeTemp);
+
+        const extendedX1 = lineX1 - dirX * extendDist1;
+        const extendedY1 = lineY1 - dirY * extendDist1;
+        const extendedX2 = lineX2 + dirX * extendDist2;
+        const extendedY2 = lineY2 + dirY * extendDist2;
+        // Determine which edges the mullion intersects (used throughout)
+        const spEdge = getEdgeFromNormalized(sp);
+        const epEdge = getEdgeFromNormalized(ep);
+
+        // Wireframe style constants
+        const frameColor = "#4a5568";
+        const frameStrokeWidth = 1.5;
 
         elements.push(
             <defs key={`defs-diag-${uniqueId}`}>
-                <linearGradient id={`outerFrameGrad-diag-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#a0a0a0" />
-                    <stop offset="50%" stopColor="#b8b8b0" />
-                    <stop offset="100%" stopColor="#909090" />
-                </linearGradient>
-                <linearGradient id={`midFrameGrad-diag-${uniqueId}`} x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#f5f5f0" />
-                    <stop offset="25%" stopColor="#eeeeea" />
-                    <stop offset="75%" stopColor="#e0e0d8" />
-                    <stop offset="100%" stopColor="#d5d5cd" />
-                </linearGradient>
-                <linearGradient id={`innerFrameGrad-diag-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#c8c8c0" />
-                    <stop offset="50%" stopColor="#d8d8d0" />
-                    <stop offset="100%" stopColor="#b8b8b0" />
-                </linearGradient>
                 <pattern id={`glassGrid-diag-${uniqueId}`} width="15" height="15" patternUnits="userSpaceOnUse">
                     <line x1="0" y1="0" x2="0" y2="15" stroke="#c8e6f8" strokeWidth="0.4" />
                     <line x1="0" y1="0" x2="15" y2="0" stroke="#c8e6f8" strokeWidth="0.4" />
@@ -440,23 +418,43 @@ function renderWindowNode(node, x, y, width, height, scale, selectedPanelId, dra
             </defs>
         );
 
-        // Frame layers
+        // --- White fill for frame body ---
         elements.push(
-            <rect key={`outer-frame-diag-${uniqueId}`} x={displayX} y={displayY} width={displayWidth} height={displayHeight} rx={cornerRadiusD + 2} ry={cornerRadiusD + 2} fill={`url(#outerFrameGrad-diag-${uniqueId})`} stroke="#8a8a82" strokeWidth="1.2" />
-        );
-        elements.push(
-            <rect key={`mid-frame-diag-${uniqueId}`} x={displayX + outerFrameWD} y={displayY + outerFrameWD} width={displayWidth - outerFrameWD * 2} height={displayHeight - outerFrameWD * 2} rx={cornerRadiusD + 1} ry={cornerRadiusD + 1} fill={`url(#midFrameGrad-diag-${uniqueId})`} stroke="#b0b0a8" strokeWidth="0.8" />
-        );
-        elements.push(
-            <rect key={`inner-frame-diag-${uniqueId}`} x={displayX + outerFrameWD + midFrameWD} y={displayY + outerFrameWD + midFrameWD} width={displayWidth - (outerFrameWD + midFrameWD) * 2} height={displayHeight - (outerFrameWD + midFrameWD) * 2} rx={cornerRadiusD} ry={cornerRadiusD} fill={`url(#innerFrameGrad-diag-${uniqueId})`} stroke="#a0a098" strokeWidth="0.6" />
+            <rect key={`frame-fill-diag-${uniqueId}`}
+                x={displayX} y={displayY}
+                width={displayWidth} height={displayHeight}
+                fill="white" stroke="none" />
         );
 
-        // Corner mitres
+        // --- Wireframe Frame: 3 concentric rectangles (no fill, stroke only) ---
+        // Line 1 - outer edge
+        elements.push(
+            <rect key={`frame-wire1-diag-${uniqueId}`}
+                x={displayX} y={displayY}
+                width={displayWidth} height={displayHeight}
+                fill="none" stroke={frameColor} strokeWidth={frameStrokeWidth} />
+        );
+        // Line 2 - middle profile
+        elements.push(
+            <rect key={`frame-wire2-diag-${uniqueId}`}
+                x={displayX + 12} y={displayY + 12}
+                width={displayWidth - 24} height={displayHeight - 24}
+                fill="none" stroke={frameColor} strokeWidth={frameStrokeWidth} />
+        );
+        // Line 3 - inner edge (glass boundary)
+        elements.push(
+            <rect key={`frame-wire3-diag-${uniqueId}`}
+                x={displayX + 24} y={displayY + 24}
+                width={displayWidth - 48} height={displayHeight - 48}
+                fill="none" stroke={frameColor} strokeWidth={frameStrokeWidth} />
+        );
+
+        // Corner mitre lines (connecting outer to inner at each corner)
         const mitreLenD = glassInset;
-        elements.push(<line key={`mitre-tl-diag-${uniqueId}`} x1={displayX} y1={displayY} x2={displayX + mitreLenD} y2={displayY + mitreLenD} stroke="#a0a098" strokeWidth="0.7" />);
-        elements.push(<line key={`mitre-tr-diag-${uniqueId}`} x1={displayX + displayWidth} y1={displayY} x2={displayX + displayWidth - mitreLenD} y2={displayY + mitreLenD} stroke="#a0a098" strokeWidth="0.7" />);
-        elements.push(<line key={`mitre-bl-diag-${uniqueId}`} x1={displayX} y1={displayY + displayHeight} x2={displayX + mitreLenD} y2={displayY + displayHeight - mitreLenD} stroke="#a0a098" strokeWidth="0.7" />);
-        elements.push(<line key={`mitre-br-diag-${uniqueId}`} x1={displayX + displayWidth} y1={displayY + displayHeight} x2={displayX + displayWidth - mitreLenD} y2={displayY + displayHeight - mitreLenD} stroke="#a0a098" strokeWidth="0.7" />);
+        elements.push(<line key={`mitre-tl-diag-${uniqueId}`} x1={displayX} y1={displayY} x2={displayX + mitreLenD} y2={displayY + mitreLenD} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
+        elements.push(<line key={`mitre-tr-diag-${uniqueId}`} x1={displayX + displayWidth} y1={displayY} x2={displayX + displayWidth - mitreLenD} y2={displayY + mitreLenD} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
+        elements.push(<line key={`mitre-bl-diag-${uniqueId}`} x1={displayX} y1={displayY + displayHeight} x2={displayX + mitreLenD} y2={displayY + displayHeight - mitreLenD} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
+        elements.push(<line key={`mitre-br-diag-${uniqueId}`} x1={displayX + displayWidth} y1={displayY + displayHeight} x2={displayX + displayWidth - mitreLenD} y2={displayY + displayHeight - mitreLenD} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
 
         // Compute polygon vertices for two panes
         const poly1 = computeDiagonalPolygon1(gx, gy, gw, gh, sp, ep);
@@ -514,18 +512,122 @@ function renderWindowNode(node, x, y, width, height, scale, selectedPanelId, dra
             />
         );
 
-        // --- Diagonal Mullion Line (the blue bar) ---
-        const dxM = lineX2 - lineX1;
-        const dyM = lineY2 - lineY1;
-        const mullionWidthD = 4;
+        // --- Diagonal Mullion: 3D profile connecting between frame lines 2 and 3 ---
+        const perpXM = -dyM / len; // perpendicular unit vector X
+        const perpYM = dxM / len;  // perpendicular unit vector Y
+
+        // White-filled polygon (solid bar body, width matches frame gap)
+        const mullionHalfW = 6; // half width = 6px (total 12px, fits between frame lines 2 & 3)
+        const barP1x = extendedX1 + perpXM * (-mullionHalfW);
+        const barP1y = extendedY1 + perpYM * (-mullionHalfW);
+        const barP2x = extendedX2 + perpXM * (-mullionHalfW);
+        const barP2y = extendedY2 + perpYM * (-mullionHalfW);
+        const barP3x = extendedX2 + perpXM * mullionHalfW;
+        const barP3y = extendedY2 + perpYM * mullionHalfW;
+        const barP4x = extendedX1 + perpXM * mullionHalfW;
+        const barP4y = extendedY1 + perpYM * mullionHalfW;
+
         elements.push(
-            <g key={`mullion-diag-${uniqueId}`}>
-                <line x1={lineX1} y1={lineY1} x2={lineX2} y2={lineY2} stroke="#1e3a5f" strokeWidth={mullionWidthD + 2} opacity="0.15" strokeLinecap="round" />
-                <line x1={lineX1} y1={lineY1} x2={lineX2} y2={lineY2} stroke="#c0c8d0" strokeWidth={mullionWidthD + 1} strokeLinecap="round" />
-                <line x1={lineX1} y1={lineY1} x2={lineX2} y2={lineY2} stroke="#2563eb" strokeWidth={mullionWidthD} strokeLinecap="round" />
-                <line x1={lineX1} y1={lineY1} x2={lineX2} y2={lineY2} stroke="#60a5fa" strokeWidth={1} opacity="0.6" strokeLinecap="round" />
-            </g>
+            <polygon key={`mullion-fill-${uniqueId}`}
+                points={`${barP1x},${barP1y} ${barP2x},${barP2y} ${barP3x},${barP3y} ${barP4x},${barP4y}`}
+                fill="white" stroke="none" />
         );
+
+        // 4 profile lines equally spaced within 12px width (4px gap between each)
+        // Line 1 aligns with frame line 2, Line 4 aligns with frame line 3
+        const mullionOffsets = [-6, -2, 2, 6];
+        mullionOffsets.forEach((offset, i) => {
+            const ox = perpXM * offset;
+            const oy = perpYM * offset;
+            elements.push(
+                <line key={`mullion-wire-${i}-${uniqueId}`}
+                    x1={extendedX1 + ox} y1={extendedY1 + oy}
+                    x2={extendedX2 + ox} y2={extendedY2 + oy}
+                    stroke={frameColor} strokeWidth={frameStrokeWidth} />
+            );
+        });
+
+        // --- 3D Connection Lines: Line 1 and Line 4 extensions at endpoints ---
+        // At each endpoint where the diagonal meets the frame, the outermost (line 1)
+        // and innermost (line 4) mullion lines extend along the frame edge direction,
+        // creating a 3D profile joint effect (like in the reference image).
+        const line1Off = mullionOffsets[0]; // -6 (outermost)
+        const line4Off = mullionOffsets[3]; // +6 (innermost)
+
+        // Endpoints of line 1 and line 4 at the start and end of the mullion
+        const line1StartPt = {
+            x: extendedX1 + perpXM * line1Off,
+            y: extendedY1 + perpYM * line1Off
+        };
+        const line4StartPt = {
+            x: extendedX1 + perpXM * line4Off,
+            y: extendedY1 + perpYM * line4Off
+        };
+        const line1EndPt = {
+            x: extendedX2 + perpXM * line1Off,
+            y: extendedY2 + perpYM * line1Off
+        };
+        const line4EndPt = {
+            x: extendedX2 + perpXM * line4Off,
+            y: extendedY2 + perpYM * line4Off
+        };
+
+        // Cap direction: extends along the frame edge, away from the diagonal's entry
+        // At start: opposite to mullion direction projected onto frame edge
+        // At end: same as mullion direction projected onto frame edge
+        const getCapDirection = (edge, isStart) => {
+            const mx = isStart ? -dirX : dirX;
+            const my = isStart ? -dirY : dirY;
+            if (edge === 'left' || edge === 'right') {
+                return { x: 0, y: my >= 0 ? 1 : -1 };
+            } else {
+                return { x: mx >= 0 ? 1 : -1, y: 0 };
+            }
+        };
+
+        const capLength = 14; // Length of the extension along frame edge
+
+        // Start endpoint: line 1 and line 4 extend along the frame edge
+        if (spEdge !== 'none') {
+            const capDirS = getCapDirection(spEdge, true);
+            // Line 1 (outer) extension along frame edge
+            elements.push(
+                <line key={`conn-l1-start-${uniqueId}`}
+                    x1={line1StartPt.x} y1={line1StartPt.y}
+                    x2={line1StartPt.x + capDirS.x * capLength}
+                    y2={line1StartPt.y + capDirS.y * capLength}
+                    stroke={frameColor} strokeWidth={frameStrokeWidth} />
+            );
+            // Line 4 (inner) extension along frame edge
+            elements.push(
+                <line key={`conn-l4-start-${uniqueId}`}
+                    x1={line4StartPt.x} y1={line4StartPt.y}
+                    x2={line4StartPt.x + capDirS.x * capLength}
+                    y2={line4StartPt.y + capDirS.y * capLength}
+                    stroke={frameColor} strokeWidth={frameStrokeWidth} />
+            );
+        }
+
+        // End endpoint: line 1 and line 4 extend along the frame edge
+        if (epEdge !== 'none') {
+            const capDirE = getCapDirection(epEdge, false);
+            // Line 1 (outer) extension along frame edge
+            elements.push(
+                <line key={`conn-l1-end-${uniqueId}`}
+                    x1={line1EndPt.x} y1={line1EndPt.y}
+                    x2={line1EndPt.x + capDirE.x * capLength}
+                    y2={line1EndPt.y + capDirE.y * capLength}
+                    stroke={frameColor} strokeWidth={frameStrokeWidth} />
+            );
+            // Line 4 (inner) extension along frame edge
+            elements.push(
+                <line key={`conn-l4-end-${uniqueId}`}
+                    x1={line4EndPt.x} y1={line4EndPt.y}
+                    x2={line4EndPt.x + capDirE.x * capLength}
+                    y2={line4EndPt.y + capDirE.y * capLength}
+                    stroke={frameColor} strokeWidth={frameStrokeWidth} />
+            );
+        }
 
         // --- Mullion Label (T1) ---
         const midXD = (lineX1 + lineX2) / 2;
@@ -575,8 +677,7 @@ function renderWindowNode(node, x, y, width, height, scale, selectedPanelId, dra
         };
 
         // Compute frame-edge angles at both endpoints
-        const spEdge = getEdgeFromNormalized(sp);
-        const epEdge = getEdgeFromNormalized(ep);
+        // (spEdge and epEdge already calculated above)
 
         // Compute angles relative to each frame edge
         const computeEdgeAngle = (edge, x1, y1, x2, y2) => {
@@ -813,6 +914,7 @@ export default function WindowCanvas({
     isCustomMullionMode = false,
     onCustomMullionDraw,
     onCustomMullionCancel,
+    onClear,
 }) {
     const [dragOverPanelId, setDragOverPanelId] = useState(null);
     const [is3DMode, setIs3DMode] = useState(false);
@@ -875,15 +977,21 @@ export default function WindowCanvas({
 
     // Convert screen coordinates to SVG coordinates
     const screenToSvg = (screenX, screenY) => {
-        if (!svgRef.current || !containerRef.current) return { x: 0, y: 0 };
+        if (!svgRef.current) return { x: 0, y: 0 };
 
-        const svgRect = svgRef.current.getBoundingClientRect();
-        const viewBox = svgRef.current.viewBox.baseVal;
+        // Use SVG's built-in coordinate transformation for accurate conversion
+        const svg = svgRef.current;
+        const pt = svg.createSVGPoint();
+        pt.x = screenX;
+        pt.y = screenY;
 
-        const svgX = ((screenX - svgRect.left) / svgRect.width) * (viewBox.width) + viewBox.x;
-        const svgY = ((screenY - svgRect.top) / svgRect.height) * (viewBox.height) + viewBox.y;
+        // Transform the point from screen space to SVG space
+        const ctm = svg.getScreenCTM();
+        if (!ctm) return { x: 0, y: 0 };
 
-        return { x: svgX, y: svgY };
+        const transformedPt = pt.matrixTransform(ctm.inverse());
+
+        return { x: transformedPt.x, y: transformedPt.y };
     };
 
     // Find panel at given SVG coordinates
@@ -967,17 +1075,38 @@ export default function WindowCanvas({
         }
     };
 
-    // --- Custom mullion click handler ---
-    const handleCustomMullionClick = (e) => {
-        if (!isCustomMullionMode || is3DMode) return;
-        e.stopPropagation();
+    // --- Find nearest panel (for custom mullion - works even when clicking on frame area) ---
+    const getNearestPanel = (svgX, svgY) => {
+        // First try exact hit
+        const exact = getPanelAtPoint(svgX, svgY);
+        if (exact) return exact;
 
-        const { x, y } = screenToSvg(e.clientX, e.clientY);
+        // If no exact hit, find the nearest panel by distance to panel center
+        // This allows clicking on the frame area (outside glass bounds)
+        let nearest = null;
+        let minDist = Infinity;
+        for (const panel of panelBounds) {
+            const cx = panel.x + panel.width / 2;
+            const cy = panel.y + panel.height / 2;
+            const dist = Math.sqrt((svgX - cx) ** 2 + (svgY - cy) ** 2);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = panel;
+            }
+        }
+        return nearest;
+    };
+
+    // --- Custom mullion click handler (single click) ---
+    const handleCustomMullionClick = (clientX, clientY) => {
+        if (!isCustomMullionMode || is3DMode) return;
+
+        const { x, y } = screenToSvg(clientX, clientY);
 
         if (!cmStartPoint) {
             // First click - set start point
-            const panel = getPanelAtPoint(x, y);
-            if (!panel) return; // Must click on a panel
+            const panel = getNearestPanel(x, y);
+            if (!panel) return;
 
             const snapped = snapToFrame(x, y, panel);
             setCmStartPoint(snapped);
@@ -986,11 +1115,9 @@ export default function WindowCanvas({
             // Second click - finalize the line
             const snapped = snapToFrame(x, y, cmTargetPanel);
 
-            // Don't allow start == end
             const dist = Math.sqrt((snapped.x - cmStartPoint.x) ** 2 + (snapped.y - cmStartPoint.y) ** 2);
             if (dist < 5) return;
 
-            // Normalize coords to 0-1 within the panel
             const panel = cmTargetPanel;
             const normStart = {
                 x: (cmStartPoint.x - panel.x) / panel.width,
@@ -1003,7 +1130,6 @@ export default function WindowCanvas({
 
             onCustomMullionDraw?.(normStart, normEnd, panel.id, panel.path);
 
-            // Reset drawing state
             setCmStartPoint(null);
             setCmPreviewPoint(null);
             setCmTargetPanel(null);
@@ -1050,7 +1176,7 @@ export default function WindowCanvas({
 
     const handleClick = (e) => {
         if (isCustomMullionMode) {
-            handleCustomMullionClick(e);
+            handleCustomMullionClick(e.clientX, e.clientY);
             return;
         }
         const { x, y } = screenToSvg(e.clientX, e.clientY);
@@ -1058,6 +1184,15 @@ export default function WindowCanvas({
 
         if (panel && onPanelClick) {
             onPanelClick(panel.id, panel.path);
+        }
+    };
+
+    // Touch support for custom mullion
+    const handleTouchEnd = (e) => {
+        if (!isCustomMullionMode) return;
+        const touch = e.changedTouches[0];
+        if (touch) {
+            handleCustomMullionClick(touch.clientX, touch.clientY);
         }
     };
 
@@ -1125,6 +1260,7 @@ export default function WindowCanvas({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={handleClick}
+            onTouchEnd={isCustomMullionMode ? handleTouchEnd : undefined}
             onMouseMove={isCustomMullionMode ? handleCustomMullionMouseMove : undefined}
         >
             {/* Custom Mullion Mode Banner */}
@@ -1239,6 +1375,18 @@ export default function WindowCanvas({
                         <g transform={isOutside ? `translate(${displayWidth}, 0) scale(-1, 1)` : undefined}>
                             {renderWindowNode(windowStructure, 0, 0, width, height, scale, selectedPanelId, dragOverPanelId, [], isOutside)}
                         </g>
+
+                        {/* Transparent overlay for custom mullion mode to ensure all clicks are captured */}
+                        {isCustomMullionMode && (
+                            <rect
+                                x={-padding}
+                                y={-padding}
+                                width={displayWidth + padding * 2}
+                                height={displayHeight + padding * 2}
+                                fill="transparent"
+                                style={{ cursor: 'crosshair', pointerEvents: 'all' }}
+                            />
+                        )}
 
                         {/* Custom Mullion Drawing Preview */}
                         {isCustomMullionMode && cmStartPoint && (
@@ -1529,7 +1677,6 @@ export default function WindowCanvas({
                         border: '1px solid #e2e8f0',
                         borderRadius: '4px',
                         background: 'white',
-                        color: canUndo ? '#475569' : '#cbd5e1',
                         cursor: canUndo ? 'pointer' : 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
@@ -1538,7 +1685,10 @@ export default function WindowCanvas({
                         transition: 'all 0.15s ease',
                     }}
                 >
-                    ↩
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={canUndo ? '#475569' : '#cbd5e1'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 7v6h6"></path>
+                        <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
+                    </svg>
                 </button>
                 {/* Redo Button */}
                 <button
@@ -1551,7 +1701,6 @@ export default function WindowCanvas({
                         border: '1px solid #e2e8f0',
                         borderRadius: '4px',
                         background: 'white',
-                        color: canRedo ? '#475569' : '#cbd5e1',
                         cursor: canRedo ? 'pointer' : 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
@@ -1560,7 +1709,10 @@ export default function WindowCanvas({
                         transition: 'all 0.15s ease',
                     }}
                 >
-                    ↪
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={canRedo ? '#475569' : '#cbd5e1'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 7v6h-6"></path>
+                        <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"></path>
+                    </svg>
                 </button>
 
                 {/* 3D Toggle Button */}
@@ -1573,21 +1725,45 @@ export default function WindowCanvas({
                         border: is3DMode ? '2px solid #3b82f6' : '1px solid #e2e8f0',
                         borderRadius: '4px',
                         background: is3DMode ? '#eff6ff' : 'white',
-                        color: is3DMode ? '#3b82f6' : '#64748b',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '14px',
                         transition: 'all 0.2s ease',
                         boxShadow: is3DMode ? '0 0 8px rgba(59, 130, 246, 0.3)' : 'none',
                     }}
                 >
-                    🧊
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={is3DMode ? '#3b82f6' : '#64748b'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
                 </button>
 
-                <button style={{ width: '32px', height: '32px', border: '1px solid #e2e8f0', borderRadius: '4px', background: 'white', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    📖
+                {/* Clear Button */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); onClear?.(); }}
+                    title="Clear Design (Reset to Default)"
+                    style={{
+                        width: '32px',
+                        height: '32px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '4px',
+                        background: 'white',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                    }}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
                 </button>
             </div>
 
