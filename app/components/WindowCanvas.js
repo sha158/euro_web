@@ -773,6 +773,333 @@ function renderWindowNode(node, x, y, width, height, scale, selectedPanelId, dra
             }
         ];
 
+    } else if (node.type === 'sliding') {
+        // --- Sliding Window Rendering ---
+        const displayX = x * scale;
+        const displayY = y * scale;
+        const displayWidth = width * scale;
+        const displayHeight = height * scale;
+
+        const frameColor = "#4a5568";
+        const frameStrokeWidth = 1.5;
+        const sashFrameColor = "#5a6577";
+        const outerFrameTotal = 24; // matches totalFrame
+        const sashFrameTotal = 16; // sash profile depth
+
+        const uniqueId = 'sliding-' + path.join('-');
+
+        // --- Defs for glass grid ---
+        elements.push(
+            <defs key={`defs-sliding-${uniqueId}`}>
+                <pattern id={`glassGrid-sliding-${uniqueId}`} width="15" height="15" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="0" y2="15" stroke="#c8e6f8" strokeWidth="0.4" />
+                    <line x1="0" y1="0" x2="15" y2="0" stroke="#c8e6f8" strokeWidth="0.4" />
+                </pattern>
+                <linearGradient id={`sashGrad-${uniqueId}`} x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#b0b8c4" />
+                    <stop offset="50%" stopColor="#d4dae2" />
+                    <stop offset="100%" stopColor="#a0a8b4" />
+                </linearGradient>
+            </defs>
+        );
+
+        // --- White fill for outer frame body ---
+        elements.push(
+            <rect key={`frame-fill-sliding-${uniqueId}`}
+                x={displayX} y={displayY}
+                width={displayWidth} height={displayHeight}
+                fill="white" stroke="none" />
+        );
+
+        // --- Outer Frame: 3 concentric rectangles ---
+        elements.push(
+            <rect key={`frame-wire1-sliding-${uniqueId}`}
+                x={displayX} y={displayY}
+                width={displayWidth} height={displayHeight}
+                fill="none" stroke={frameColor} strokeWidth={frameStrokeWidth} />
+        );
+        elements.push(
+            <rect key={`frame-wire2-sliding-${uniqueId}`}
+                x={displayX + 12} y={displayY + 12}
+                width={displayWidth - 24} height={displayHeight - 24}
+                fill="none" stroke={frameColor} strokeWidth={frameStrokeWidth} />
+        );
+        elements.push(
+            <rect key={`frame-wire3-sliding-${uniqueId}`}
+                x={displayX + 24} y={displayY + 24}
+                width={displayWidth - 48} height={displayHeight - 48}
+                fill="none" stroke={frameColor} strokeWidth={frameStrokeWidth} />
+        );
+
+        // --- Corner mitre lines ---
+        const mitreLen = outerFrameTotal;
+        elements.push(<line key={`mitre-tl-sliding-${uniqueId}`} x1={displayX} y1={displayY} x2={displayX + mitreLen} y2={displayY + mitreLen} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
+        elements.push(<line key={`mitre-tr-sliding-${uniqueId}`} x1={displayX + displayWidth} y1={displayY} x2={displayX + displayWidth - mitreLen} y2={displayY + mitreLen} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
+        elements.push(<line key={`mitre-bl-sliding-${uniqueId}`} x1={displayX} y1={displayY + displayHeight} x2={displayX + mitreLen} y2={displayY + displayHeight - mitreLen} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
+        elements.push(<line key={`mitre-br-sliding-${uniqueId}`} x1={displayX + displayWidth} y1={displayY + displayHeight} x2={displayX + displayWidth - mitreLen} y2={displayY + displayHeight - mitreLen} stroke={frameColor} strokeWidth={frameStrokeWidth * 0.7} />);
+
+        // --- Corner reference dots ---
+        [[displayX, displayY], [displayX + displayWidth, displayY], [displayX, displayY + displayHeight], [displayX + displayWidth, displayY + displayHeight]].forEach(([cx, cy], i) => {
+            elements.push(<circle key={`corner-dot-sliding-${uniqueId}-${i}`} cx={cx} cy={cy} r={1.5} fill="#ef4444" opacity="0.6" />);
+        });
+
+        // --- Per-Sash (Panel) Rendering ---
+        const glassAreaX = displayX + outerFrameTotal;
+        const glassAreaY = displayY + outerFrameTotal;
+        const glassAreaW = displayWidth - outerFrameTotal * 2;
+        const glassAreaH = displayHeight - outerFrameTotal * 2;
+        const sashGap = 2; // gap between sashes for the interlock
+
+        const childWidths = node.ratios.map(r => glassAreaW * r);
+        let currentSashX = glassAreaX;
+        const allBounds = [];
+
+        node.children.forEach((child, i) => {
+            const sashW = childWidths[i] - sashGap;
+            const sashX = currentSashX + (i > 0 ? sashGap / 2 : 0);
+            const sashY = glassAreaY;
+            const sashH = glassAreaH;
+            const isSelected = selectedPanelId === child.id;
+            const isDragOver = dragOverPanelId === child.id;
+
+            const sashUniqueId = `${uniqueId}-sash-${i}`;
+
+            // --- Sash frame fill (3D gradient between lines) ---
+            elements.push(
+                <rect key={`sash-fill-${sashUniqueId}`}
+                    x={sashX} y={sashY}
+                    width={sashW} height={sashH}
+                    fill={`url(#sashGrad-${uniqueId})`} stroke="none" />
+            );
+
+            // --- Sash frame: 3 concentric rectangles ---
+            elements.push(
+                <rect key={`sash-wire1-${sashUniqueId}`}
+                    x={sashX} y={sashY}
+                    width={sashW} height={sashH}
+                    fill="none" stroke={sashFrameColor} strokeWidth={frameStrokeWidth * 1.2} />
+            );
+            elements.push(
+                <rect key={`sash-wire2-${sashUniqueId}`}
+                    x={sashX + 5} y={sashY + 5}
+                    width={sashW - 10} height={sashH - 10}
+                    fill="none" stroke={sashFrameColor} strokeWidth={frameStrokeWidth} />
+            );
+            elements.push(
+                <rect key={`sash-wire3-${sashUniqueId}`}
+                    x={sashX + 10} y={sashY + 10}
+                    width={sashW - 20} height={sashH - 20}
+                    fill="none" stroke={sashFrameColor} strokeWidth={frameStrokeWidth} />
+            );
+
+            // --- Sash corner mitres ---
+            const sm = 10;
+            elements.push(<line key={`sash-mitre-tl-${sashUniqueId}`} x1={sashX} y1={sashY} x2={sashX + sm} y2={sashY + sm} stroke={sashFrameColor} strokeWidth={frameStrokeWidth * 0.6} />);
+            elements.push(<line key={`sash-mitre-tr-${sashUniqueId}`} x1={sashX + sashW} y1={sashY} x2={sashX + sashW - sm} y2={sashY + sm} stroke={sashFrameColor} strokeWidth={frameStrokeWidth * 0.6} />);
+            elements.push(<line key={`sash-mitre-bl-${sashUniqueId}`} x1={sashX} y1={sashY + sashH} x2={sashX + sm} y2={sashY + sashH - sm} stroke={sashFrameColor} strokeWidth={frameStrokeWidth * 0.6} />);
+            elements.push(<line key={`sash-mitre-br-${sashUniqueId}`} x1={sashX + sashW} y1={sashY + sashH} x2={sashX + sashW - sm} y2={sashY + sashH - sm} stroke={sashFrameColor} strokeWidth={frameStrokeWidth * 0.6} />);
+
+            // --- Glass pane inside sash ---
+            const glassX = sashX + sashFrameTotal;
+            const glassY = sashY + sashFrameTotal;
+            const glassW = sashW - sashFrameTotal * 2;
+            const glassH = sashH - sashFrameTotal * 2;
+
+            let fillColor = "#d4eefa";
+            let strokeColor = "#b0d8f0";
+            let fillOpacity = "0.65";
+            let strokeWidth = "1";
+
+            if (isDragOver) {
+                fillColor = "#86efac"; strokeColor = "#22c55e"; fillOpacity = "0.8"; strokeWidth = "3";
+            } else if (isSelected) {
+                fillColor = "#a0d4f4"; strokeColor = "#3b82f6"; fillOpacity = "0.85"; strokeWidth = "3";
+            }
+
+            elements.push(
+                <rect key={`glass-bg-${sashUniqueId}`}
+                    x={glassX} y={glassY}
+                    width={glassW} height={glassH}
+                    rx={1} ry={1}
+                    fill={fillColor} stroke={strokeColor}
+                    strokeWidth={strokeWidth} fillOpacity={fillOpacity}
+                    style={{ pointerEvents: 'none' }}
+                    data-panel-id={child.id} />
+            );
+            elements.push(
+                <rect key={`glass-grid-${sashUniqueId}`}
+                    x={glassX} y={glassY}
+                    width={glassW} height={glassH}
+                    rx={1} ry={1}
+                    fill={`url(#glassGrid-sliding-${uniqueId})`} fillOpacity="0.5"
+                    stroke="none" style={{ pointerEvents: 'none' }} />
+            );
+
+            // --- Direction Arrow ---
+            const arrowCX = sashX + sashW / 2;
+            const arrowCY = sashY + sashH / 2 + 10;
+            if (child.sashDirection === 'right') {
+                elements.push(
+                    <g key={`arrow-${sashUniqueId}`}>
+                        <line x1={arrowCX - 18} y1={arrowCY} x2={arrowCX + 14} y2={arrowCY} stroke="#475569" strokeWidth="2.5" />
+                        <polygon points={`${arrowCX + 14},${arrowCY - 5} ${arrowCX + 22},${arrowCY} ${arrowCX + 14},${arrowCY + 5}`} fill="#475569" />
+                    </g>
+                );
+            } else if (child.sashDirection === 'left') {
+                elements.push(
+                    <g key={`arrow-${sashUniqueId}`}>
+                        <line x1={arrowCX - 14} y1={arrowCY} x2={arrowCX + 18} y2={arrowCY} stroke="#475569" strokeWidth="2.5" />
+                        <polygon points={`${arrowCX - 14},${arrowCY - 5} ${arrowCX - 22},${arrowCY} ${arrowCX - 14},${arrowCY + 5}`} fill="#475569" />
+                    </g>
+                );
+            } else if (child.sashDirection === 'fixed') {
+                // Plus sign for fixed panel
+                elements.push(
+                    <g key={`arrow-${sashUniqueId}`}>
+                        <line x1={arrowCX - 8} y1={arrowCY} x2={arrowCX + 8} y2={arrowCY} stroke="#475569" strokeWidth="2.5" />
+                        <line x1={arrowCX} y1={arrowCY - 8} x2={arrowCX} y2={arrowCY + 8} stroke="#475569" strokeWidth="2.5" />
+                    </g>
+                );
+            } else if (child.sashDirection === 'both') {
+                // Bidirectional arrow
+                elements.push(
+                    <g key={`arrow-${sashUniqueId}`}>
+                        <line x1={arrowCX - 14} y1={arrowCY} x2={arrowCX + 14} y2={arrowCY} stroke="#475569" strokeWidth="2.5" />
+                        <polygon points={`${arrowCX + 14},${arrowCY - 5} ${arrowCX + 22},${arrowCY} ${arrowCX + 14},${arrowCY + 5}`} fill="#475569" />
+                        <polygon points={`${arrowCX - 14},${arrowCY - 5} ${arrowCX - 22},${arrowCY} ${arrowCX - 14},${arrowCY + 5}`} fill="#475569" />
+                    </g>
+                );
+            }
+
+            // --- Sash Label (S1, S2...) at top ---
+            const sashLabelX = sashX + sashW / 2;
+            const sashLabelY = sashY + 20;
+            elements.push(
+                <g key={`sash-label-${sashUniqueId}`}>
+                    <rect x={sashLabelX - 12} y={sashLabelY - 10} width="24" height="16" rx="2" fill="white" stroke="#94a3b8" strokeWidth="0.5" />
+                    <g transform={isOutside ? `translate(${sashLabelX}, 0) scale(-1, 1) translate(${-sashLabelX}, 0)` : undefined}>
+                        <text x={sashLabelX} y={sashLabelY + 2} textAnchor="middle" fontSize="9" fill="#475569" fontWeight="600" fontFamily="Inter, sans-serif">
+                            {child.sashLabel || `S${i + 1}`}
+                        </text>
+                    </g>
+                </g>
+            );
+
+            // --- Handle/Lock indicator ---
+            const handleSide = child.sashDirection === 'right' ? 'right' : 'left';
+            const handleX = handleSide === 'right' ? sashX + sashW - 4 : sashX + 2;
+            const handleY = sashY + sashH / 2 - 8;
+            elements.push(
+                <rect key={`handle-${sashUniqueId}`}
+                    x={handleX} y={handleY}
+                    width="3" height="16" rx="1"
+                    fill="#94a3b8" stroke="#64748b" strokeWidth="0.5" />
+            );
+
+            // --- GHH Label ---
+            const ghhLabelX = sashX + sashW / 2;
+            const ghhLabelY = sashY + sashH - 30;
+            elements.push(
+                <g key={`ghh-${sashUniqueId}`}>
+                    <rect x={ghhLabelX - 28} y={ghhLabelY - 8} width="56" height="16" rx="2" fill="white" stroke="#94a3b8" strokeWidth="0.5" />
+                    <g transform={isOutside ? `translate(${ghhLabelX}, 0) scale(-1, 1) translate(${-ghhLabelX}, 0)` : undefined}>
+                        <text x={ghhLabelX} y={ghhLabelY + 4} textAnchor="middle" fontSize="8" fill="#64748b" fontWeight="500" fontFamily="Inter, sans-serif">
+                            GHH = 720
+                        </text>
+                    </g>
+                </g>
+            );
+
+            // --- Panel Center Marker (number) ---
+            const markerCX = sashX + sashW / 2;
+            const markerCY = sashY + sashH / 2 - 15;
+            elements.push(
+                <g key={`marker-sliding-${sashUniqueId}`} transform={`translate(${markerCX}, ${markerCY})`}>
+                    <circle cx="0" cy="0" r="14" fill="#fff" stroke={isDragOver ? "#22c55e" : "#94a3b8"} strokeWidth={isDragOver ? "2" : "1"} />
+                    <g transform={isOutside ? `scale(-1, 1)` : undefined}>
+                        <text x="0" y="4.5" textAnchor="middle" fontSize="11" fill={isDragOver ? "#22c55e" : "#64748b"} fontWeight="600" fontFamily="Inter, sans-serif">{child.id}</text>
+                    </g>
+                    <line x1="-8" y1="14" x2="8" y2="14" stroke="#94a3b8" strokeWidth="0.5" />
+                    <line x1="0" y1="15" x2="0" y2="26" stroke="#94a3b8" strokeWidth="0.5" />
+                </g>
+            );
+
+            // Store panel bounds
+            allBounds.push({
+                id: child.id,
+                path: [...path, i, child.id],
+                x: glassX,
+                y: glassY,
+                width: glassW,
+                height: glassH,
+            });
+
+            currentSashX += childWidths[i];
+        });
+
+        // --- F1 Label ---
+        const f1X = displayX + displayWidth - 30;
+        const f1Y = displayY + displayHeight - 30;
+        elements.push(
+            <g key={`f1-label-sliding-${uniqueId}`} transform={isOutside
+                ? `translate(${displayX + 30}, ${f1Y})`
+                : `translate(${f1X}, ${f1Y})`
+            }>
+                <rect x="-10" y="-15" width="25" height="20" fill="white" stroke="#94a3b8" />
+                <text x="2" y="-1" textAnchor="middle" fontSize="12" fill="#64748b">F1</text>
+            </g>
+        );
+
+        // --- TN Label ---
+        const tnX = displayX + displayWidth + 8;
+        const tnY = displayY + displayHeight - 10;
+        elements.push(
+            <g key={`tn-label-sliding-${uniqueId}`}>
+                <rect x={tnX - 10} y={tnY - 10} width="24" height="18" rx="2" fill="white" stroke="#94a3b8" strokeWidth="0.5" />
+                <g transform={isOutside ? `translate(${tnX + 2}, 0) scale(-1, 1) translate(${-(tnX + 2)}, 0)` : undefined}>
+                    <text x={tnX + 2} y={tnY + 3} textAnchor="middle" fontSize="9" fill="#64748b" fontWeight="600" fontFamily="Inter, sans-serif">TN</text>
+                </g>
+            </g>
+        );
+
+        // --- Per-panel width dimensions below the window ---
+        const dimY = displayY + displayHeight + 18;
+        const dimLineY = displayY + displayHeight + 6;
+        let dimCurrentX = glassAreaX;
+        node.children.forEach((_, i) => {
+            const sashW = childWidths[i];
+            const panelMm = Math.round(sashW / scale);
+            const centerX = dimCurrentX + sashW / 2;
+            // Tick marks
+            elements.push(<line key={`dim-tick-l-${uniqueId}-${i}`} x1={dimCurrentX} y1={dimLineY} x2={dimCurrentX} y2={dimLineY + 6} stroke="#94a3b8" strokeWidth="0.7" />);
+            elements.push(<line key={`dim-tick-r-${uniqueId}-${i}`} x1={dimCurrentX + sashW} y1={dimLineY} x2={dimCurrentX + sashW} y2={dimLineY + 6} stroke="#94a3b8" strokeWidth="0.7" />);
+            // Connecting line
+            elements.push(<line key={`dim-line-${uniqueId}-${i}`} x1={dimCurrentX} y1={dimLineY + 3} x2={dimCurrentX + sashW} y2={dimLineY + 3} stroke="#94a3b8" strokeWidth="0.5" />);
+            // Value label
+            elements.push(
+                <g key={`dim-val-${uniqueId}-${i}`} transform={isOutside ? `translate(${centerX}, 0) scale(-1, 1) translate(${-centerX}, 0)` : undefined}>
+                    <text x={centerX} y={dimY + 2} textAnchor="middle" fontSize="10" fill="#475569" fontWeight="600" fontFamily="Inter, sans-serif">{panelMm}</text>
+                </g>
+            );
+            dimCurrentX += sashW;
+        });
+
+        // --- Total width dimension ---
+        const totalDimY = dimY + 18;
+        const totalMm = Math.round(displayWidth / scale);
+        const totalCenterX = displayX + displayWidth / 2;
+        // End arrows
+        elements.push(<line key={`dim-total-line-${uniqueId}`} x1={displayX} y1={totalDimY - 4} x2={displayX + displayWidth} y2={totalDimY - 4} stroke="#94a3b8" strokeWidth="0.5" />);
+        elements.push(<polygon key={`dim-total-arrowR-${uniqueId}`} points={`${displayX + displayWidth},${totalDimY - 4} ${displayX + displayWidth - 5},${totalDimY - 7} ${displayX + displayWidth - 5},${totalDimY - 1}`} fill="#94a3b8" />);
+        elements.push(<polygon key={`dim-total-arrowL-${uniqueId}`} points={`${displayX},${totalDimY - 4} ${displayX + 5},${totalDimY - 7} ${displayX + 5},${totalDimY - 1}`} fill="#94a3b8" />);
+        elements.push(
+            <g key={`dim-total-val-${uniqueId}`} transform={isOutside ? `translate(${totalCenterX}, 0) scale(-1, 1) translate(${-totalCenterX}, 0)` : undefined}>
+                <text x={totalCenterX} y={totalDimY + 10} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="600" fontFamily="Inter, sans-serif">{totalMm}</text>
+            </g>
+        );
+
+        elements.panelBounds = allBounds;
+
     } else if (node.type === 'split-horizontal') {
         const childHeights = node.ratios.map(r => height * r);
         let currentY = y;
@@ -892,6 +1219,33 @@ function collectPanelBounds(node, x, y, width, height, scale, path = []) {
             const childPath = [...path, i];
             bounds.push(...collectPanelBounds(child, x, currentY, width, childHeights[i], scale, childPath));
             currentY += childHeights[i];
+        });
+    } else if (node.type === 'sliding') {
+        const outerFrame = 24;
+        const sashFrame = 16;
+        const totalInset = outerFrame + sashFrame;
+        const displayX = x * scale;
+        const displayY = y * scale;
+        const displayWidth = width * scale;
+        const displayHeight = height * scale;
+        const innerX = displayX + outerFrame;
+        const innerWidth = displayWidth - outerFrame * 2;
+
+        const childWidths = node.ratios.map(r => innerWidth * r);
+        let currentSashX = innerX;
+        node.children.forEach((child, i) => {
+            const childPath = [...path, i];
+            const sashW = childWidths[i];
+            bounds.push({
+                id: child.id,
+                path: [...childPath, child.id],
+                x: currentSashX + sashFrame,
+                y: displayY + totalInset,
+                width: sashW - sashFrame * 2,
+                height: displayHeight - totalInset * 2,
+                shape: child.shape
+            });
+            currentSashX += sashW;
         });
     }
 

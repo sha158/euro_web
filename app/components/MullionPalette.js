@@ -147,6 +147,163 @@ const mullionPatterns = [
 
 ];
 
+// Sliding design patterns for the Panel section
+// Helper to build a sliding icon SVG
+const SlidingIcon = ({ panels }) => {
+    const w = 64, h = 48, pad = 2, inner = 2;
+    const totalW = w - pad * 2;
+    const panelW = totalW / panels.length;
+    return (
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none" stroke="#475569" strokeWidth="1">
+            <rect x={pad} y="4" width={totalW} height="40" rx="1" />
+            {panels.map((p, i) => {
+                const px = pad + inner + i * panelW;
+                const pw = panelW - inner * 2 + (i === 0 ? inner : 0) + (i === panels.length - 1 ? inner : 0);
+                const ox = i === 0 ? pad + inner : px;
+                const cx = ox + pw / 2;
+                return (
+                    <g key={i}>
+                        <rect x={ox} y={4 + inner} width={pw} height={40 - inner * 2} rx="0.5" />
+                        {p === 'right' && (<>
+                            <line x1={cx - 7} y1="24" x2={cx + 5} y2="24" strokeWidth="1.5" />
+                            <polyline points={`${cx + 2},21 ${cx + 6},24 ${cx + 2},27`} strokeWidth="1.5" fill="none" />
+                        </>)}
+                        {p === 'left' && (<>
+                            <line x1={cx - 5} y1="24" x2={cx + 7} y2="24" strokeWidth="1.5" />
+                            <polyline points={`${cx - 2},21 ${cx - 6},24 ${cx - 2},27`} strokeWidth="1.5" fill="none" />
+                        </>)}
+                        {p === 'fixed' && (<>
+                            <line x1={cx} y1="20" x2={cx} y2="28" strokeWidth="1.5" />
+                            <line x1={cx - 4} y1="24" x2={cx + 4} y2="24" strokeWidth="1.5" />
+                        </>)}
+                        {p === 'both' && (<>
+                            <line x1={cx - 7} y1="24" x2={cx + 7} y2="24" strokeWidth="1.5" />
+                            <polyline points={`${cx - 4},21 ${cx - 8},24 ${cx - 4},27`} strokeWidth="1.5" fill="none" />
+                            <polyline points={`${cx + 4},21 ${cx + 8},24 ${cx + 4},27`} strokeWidth="1.5" fill="none" />
+                        </>)}
+                    </g>
+                );
+            })}
+            {/* Handle indicators between panels */}
+            {panels.length >= 2 && panels.slice(0, -1).map((_, i) => {
+                const jx = pad + (i + 1) * panelW;
+                return (
+                    <g key={`h${i}`}>
+                        <rect x={jx - 1.5} y="20" width="1.2" height="8" fill="#475569" stroke="none" rx="0.5" />
+                        <rect x={jx + 0.3} y="20" width="1.2" height="8" fill="#475569" stroke="none" rx="0.5" />
+                    </g>
+                );
+            })}
+        </svg>
+    );
+};
+
+// Helper: equal ratios for n panels that sum to 1.0
+const eqRatios = (n) => {
+    const base = Math.round(1000 / n) / 1000;
+    const arr = Array(n).fill(base);
+    arr[n - 1] = +(1 - base * (n - 1)).toFixed(4);
+    return arr;
+};
+
+// Helper: build panels array from direction string codes
+const mkPanels = (dirs) => dirs.map((d, i) => ({ sashId: `S${i + 1}`, direction: d }));
+
+const slidingCategories = [
+    { id: '2t-xxp', label: '2 Track X-X-X Panel' },
+    { id: '3t-3p', label: '3 Track 3 Panel' },
+    { id: '2t-4p-meeting', label: '2 Track 4 Panel Meeting' },
+    { id: '4t-8p-meeting', label: '4 Track 8 Panel Meeting' },
+    { id: '5t-5p', label: '5 Track 5 Panel' },
+    { id: '5t-10p-meeting', label: '5 Track 10 Panel Meeting' },
+    { id: '6t-6p', label: '6 Track 6 Panel' },
+    { id: '6t-12p-meeting', label: '6 Track 12 Panel Meeting' },
+    { id: '7t-7p', label: '7 Track 7 Panel' },
+    { id: '8t-8p', label: '8 Track 8 Panel' },
+];
+
+const slidingPatterns = [
+    // ===== 2 Track X-X-X Panel =====
+    { id: 'sliding-2t-2p-rl', name: '2P \u2192\u2190', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['right','left']), ratios: eqRatios(2), icon: <SlidingIcon panels={['right','left']} /> },
+    { id: 'sliding-2t-3p-rfl', name: '3P \u2192+\u2190', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['right','fixed','left']), ratios: eqRatios(3), icon: <SlidingIcon panels={['right','fixed','left']} /> },
+    { id: 'sliding-2t-3p-rbl', name: '3P \u2192\u2194\u2190', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['right','both','left']), ratios: eqRatios(3), icon: <SlidingIcon panels={['right','both','left']} /> },
+    { id: 'sliding-2t-4p-brlb', name: '4P \u2194\u2192\u2190\u2194', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['both','right','left','both']), ratios: eqRatios(4), icon: <SlidingIcon panels={['both','right','left','both']} /> },
+
+    // ===== 3 Track 3 Panel =====
+    { id: 'sliding-3t-3p-rbl', name: '3P \u2192\u2194\u2190', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
+        panels: mkPanels(['right','both','left']), ratios: [0.35,0.30,0.35], icon: <SlidingIcon panels={['right','both','left']} /> },
+    { id: 'sliding-3t-3p-rfl', name: '3P \u2192+\u2190', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
+        panels: mkPanels(['right','fixed','left']), ratios: [0.35,0.30,0.35], icon: <SlidingIcon panels={['right','fixed','left']} /> },
+    { id: 'sliding-3t-3p-rrr', name: '3P \u2192\u2192\u2192', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
+        panels: mkPanels(['right','right','right']), ratios: eqRatios(3), icon: <SlidingIcon panels={['right','right','right']} /> },
+    { id: 'sliding-3t-3p-lll', name: '3P \u2190\u2190\u2190', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
+        panels: mkPanels(['left','left','left']), ratios: eqRatios(3), icon: <SlidingIcon panels={['left','left','left']} /> },
+
+    // ===== 2 Track 4 Panel Meeting =====
+    { id: 'sliding-2t-4p-meet-rlrl', name: '4P \u2192\u2190\u2192\u2190', category: '2t-4p-meeting', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['right','left','right','left']), ratios: eqRatios(4), icon: <SlidingIcon panels={['right','left','right','left']} /> },
+    { id: 'sliding-2t-4p-meet-rbbl', name: '4P \u2192\u2194\u2194\u2190', category: '2t-4p-meeting', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['right','both','both','left']), ratios: eqRatios(4), icon: <SlidingIcon panels={['right','both','both','left']} /> },
+    { id: 'sliding-2t-4p-meet-blrb', name: '4P \u2194\u2190\u2192\u2194', category: '2t-4p-meeting', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['both','left','right','both']), ratios: eqRatios(4), icon: <SlidingIcon panels={['both','left','right','both']} /> },
+
+    // ===== 4 Track 8 Panel Meeting =====
+    { id: 'sliding-4t-8p-meet-a', name: '8P \u2192\u2190\u2192\u2190\u2192\u2190\u2192\u2190', category: '4t-8p-meeting', type: 'sliding', requiresConfig: true, tracks: 4,
+        panels: mkPanels(['right','left','right','left','right','left','right','left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right','left','right','left','right','left','right','left']} /> },
+    { id: 'sliding-4t-8p-meet-b', name: '8P \u2192\u2194\u2190\u2192\u2194\u2190\u2192\u2190', category: '4t-8p-meeting', type: 'sliding', requiresConfig: true, tracks: 4,
+        panels: mkPanels(['right','both','left','right','both','left','right','left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right','both','left','right','both','left','right','left']} /> },
+
+    // ===== 5 Track 5 Panel =====
+    { id: 'sliding-5t-5p-a', name: '5P \u2192\u2192+\u2190\u2190', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['right','right','fixed','left','left']), ratios: eqRatios(5), icon: <SlidingIcon panels={['right','right','fixed','left','left']} /> },
+    { id: 'sliding-5t-5p-b', name: '5P \u2192\u2194\u2194\u2194\u2190', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['right','both','both','both','left']), ratios: eqRatios(5), icon: <SlidingIcon panels={['right','both','both','both','left']} /> },
+    { id: 'sliding-5t-5p-c', name: '5P \u2192\u2192\u2192\u2192\u2192', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['right','right','right','right','right']), ratios: eqRatios(5), icon: <SlidingIcon panels={['right','right','right','right','right']} /> },
+    { id: 'sliding-5t-5p-d', name: '5P \u2190\u2190\u2190\u2190\u2190', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['left','left','left','left','left']), ratios: eqRatios(5), icon: <SlidingIcon panels={['left','left','left','left','left']} /> },
+
+    // ===== 5 Track 10 Panel Meeting =====
+    { id: 'sliding-5t-10p-meet-a', name: '10P \u2192\u2190 \u00d75', category: '5t-10p-meeting', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['right','left','right','left','right','left','right','left','right','left']), ratios: eqRatios(10), icon: <SlidingIcon panels={['right','left','right','left','right','left','right','left','right','left']} /> },
+    { id: 'sliding-5t-10p-meet-b', name: '10P \u2194\u2192\u2190 mix', category: '5t-10p-meeting', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['right','both','left','right','both','left','right','both','left','left']), ratios: eqRatios(10), icon: <SlidingIcon panels={['right','both','left','right','both','left','right','both','left','left']} /> },
+
+    // ===== 6 Track 6 Panel =====
+    { id: 'sliding-6t-6p-a', name: '6P \u2192\u2192\u2192\u2190\u2190\u2190', category: '6t-6p', type: 'sliding', requiresConfig: true, tracks: 6,
+        panels: mkPanels(['right','right','right','left','left','left']), ratios: eqRatios(6), icon: <SlidingIcon panels={['right','right','right','left','left','left']} /> },
+    { id: 'sliding-6t-6p-b', name: '6P \u2192\u2194\u2194\u2194\u2194\u2190', category: '6t-6p', type: 'sliding', requiresConfig: true, tracks: 6,
+        panels: mkPanels(['right','both','both','both','both','left']), ratios: eqRatios(6), icon: <SlidingIcon panels={['right','both','both','both','both','left']} /> },
+    { id: 'sliding-6t-6p-c', name: '6P \u2192\u2192+\u2190\u2190+', category: '6t-6p', type: 'sliding', requiresConfig: true, tracks: 6,
+        panels: mkPanels(['right','right','fixed','left','left','fixed']), ratios: eqRatios(6), icon: <SlidingIcon panels={['right','right','fixed','left','left','fixed']} /> },
+
+    // ===== 6 Track 12 Panel Meeting =====
+    { id: 'sliding-6t-12p-meet-a', name: '12P \u2192\u2190 \u00d76', category: '6t-12p-meeting', type: 'sliding', requiresConfig: true, tracks: 6,
+        panels: mkPanels(['right','left','right','left','right','left','right','left','right','left','right','left']), ratios: eqRatios(12), icon: <SlidingIcon panels={['right','left','right','left','right','left','right','left','right','left','right','left']} /> },
+    { id: 'sliding-6t-12p-meet-b', name: '12P \u2194\u2192\u2190 mix', category: '6t-12p-meeting', type: 'sliding', requiresConfig: true, tracks: 6,
+        panels: mkPanels(['right','both','left','right','both','left','right','both','left','right','both','left']), ratios: eqRatios(12), icon: <SlidingIcon panels={['right','both','left','right','both','left','right','both','left','right','both','left']} /> },
+
+    // ===== 7 Track 7 Panel =====
+    { id: 'sliding-7t-7p-a', name: '7P \u2192\u2192\u2192+\u2190\u2190\u2190', category: '7t-7p', type: 'sliding', requiresConfig: true, tracks: 7,
+        panels: mkPanels(['right','right','right','fixed','left','left','left']), ratios: eqRatios(7), icon: <SlidingIcon panels={['right','right','right','fixed','left','left','left']} /> },
+    { id: 'sliding-7t-7p-b', name: '7P \u2192\u2194\u2194\u2194\u2194\u2194\u2190', category: '7t-7p', type: 'sliding', requiresConfig: true, tracks: 7,
+        panels: mkPanels(['right','both','both','both','both','both','left']), ratios: eqRatios(7), icon: <SlidingIcon panels={['right','both','both','both','both','both','left']} /> },
+    { id: 'sliding-7t-7p-c', name: '7P \u2192\u2192\u2192\u2192\u2192\u2192\u2192', category: '7t-7p', type: 'sliding', requiresConfig: true, tracks: 7,
+        panels: mkPanels(['right','right','right','right','right','right','right']), ratios: eqRatios(7), icon: <SlidingIcon panels={['right','right','right','right','right','right','right']} /> },
+
+    // ===== 8 Track 8 Panel =====
+    { id: 'sliding-8t-8p-a', name: '8P \u2192\u2192\u2192\u2192\u2190\u2190\u2190\u2190', category: '8t-8p', type: 'sliding', requiresConfig: true, tracks: 8,
+        panels: mkPanels(['right','right','right','right','left','left','left','left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right','right','right','right','left','left','left','left']} /> },
+    { id: 'sliding-8t-8p-b', name: '8P \u2192\u2194\u2194\u2194\u2194\u2194\u2194\u2190', category: '8t-8p', type: 'sliding', requiresConfig: true, tracks: 8,
+        panels: mkPanels(['right','both','both','both','both','both','both','left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right','both','both','both','both','both','both','left']} /> },
+    { id: 'sliding-8t-8p-c', name: '8P \u2192\u2192\u2192+\u2190\u2190\u2190+', category: '8t-8p', type: 'sliding', requiresConfig: true, tracks: 8,
+        panels: mkPanels(['right','right','right','fixed','left','left','left','fixed']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right','right','right','fixed','left','left','left','fixed']} /> },
+];
+
 // Sidebar menu items
 const sidebarItems = [
     { id: 'divider', name: 'Divider', icon: '║', isActive: true },
@@ -379,8 +536,112 @@ export default function MullionPalette({ onPatternDragStart, onPatternDragEnd, i
                 </div>
             )}
 
+            {/* Panel Section - Sliding Designs */}
+            {isExpanded && activeSection === 'panel' && (
+                <div style={{
+                    marginLeft: '8px',
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                    padding: '16px',
+                    minWidth: '280px',
+                    maxHeight: '80vh',
+                    overflowY: 'auto',
+                }}>
+                    {/* Header */}
+                    <div style={{
+                        fontSize: '15px',
+                        fontWeight: '600',
+                        color: '#1e293b',
+                        marginBottom: '16px',
+                    }}>
+                        Sliding Designs
+                    </div>
+
+                    {/* Render each category with badge + grid */}
+                    {slidingCategories.map((cat) => {
+                        const catPatterns = slidingPatterns.filter(p => p.category === cat.id);
+                        if (catPatterns.length === 0) return null;
+                        return (
+                            <div key={cat.id} style={{ marginBottom: '20px' }}>
+                                {/* Category Badge */}
+                                <div style={{ marginBottom: '10px' }}>
+                                    <span style={{
+                                        display: 'inline-block',
+                                        padding: '4px 12px',
+                                        backgroundColor: '#2563eb',
+                                        color: 'white',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        fontWeight: '600',
+                                    }}>
+                                        {cat.label}
+                                    </span>
+                                </div>
+
+                                {/* Pattern Grid */}
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(2, 1fr)',
+                                    gap: '10px',
+                                }}>
+                                    {catPatterns.map((pattern) => (
+                                        <div
+                                            key={pattern.id}
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, pattern)}
+                                            onDragEnd={handleDragEnd}
+                                            title={pattern.name}
+                                            style={{
+                                                padding: '8px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'grab',
+                                                border: '1px solid #e2e8f0',
+                                                borderRadius: '8px',
+                                                backgroundColor: 'white',
+                                                transition: 'all 0.2s ease',
+                                                gap: '6px',
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.borderColor = '#3b82f6';
+                                                e.currentTarget.style.backgroundColor = '#eff6ff';
+                                                e.currentTarget.style.transform = 'scale(1.03)';
+                                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.2)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.borderColor = '#e2e8f0';
+                                                e.currentTarget.style.backgroundColor = 'white';
+                                                e.currentTarget.style.transform = 'scale(1)';
+                                                e.currentTarget.style.boxShadow = 'none';
+                                            }}
+                                        >
+                                            {pattern.icon}
+                                            <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '500' }}>{pattern.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* Drag hint */}
+                    <div style={{
+                        fontSize: '11px',
+                        color: '#94a3b8',
+                        textAlign: 'center',
+                        padding: '8px 4px 4px',
+                        borderTop: '1px solid #f1f5f9',
+                    }}>
+                        Drag & drop onto canvas to apply
+                    </div>
+                </div>
+            )}
+
             {/* Placeholder for other sections */}
-            {isExpanded && activeSection !== 'divider' && (
+            {isExpanded && activeSection !== 'divider' && activeSection !== 'panel' && (
                 <div style={{
                     marginLeft: '8px',
                     backgroundColor: 'white',
@@ -412,4 +673,4 @@ export default function MullionPalette({ onPatternDragStart, onPatternDragEnd, i
 }
 
 // Export patterns for use in other components
-export { mullionPatterns };
+export { mullionPatterns, slidingPatterns };

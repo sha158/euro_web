@@ -6,6 +6,7 @@ import WindowCanvas from '../../../components/WindowCanvas';
 import MullionModal from '../../../components/MullionModal';
 import MultipleMullionModal from '../../../components/MultipleMullionModal';
 import MullionPalette from '../../../components/MullionPalette';
+import SelectSystemModal from '../../../components/SelectSystemModal';
 
 // Dynamic import for 3D Viewer (Three.js doesn't support SSR)
 
@@ -25,7 +26,7 @@ export default function DesignConfiguratorPage({ params }) {
     const [pendingPanelPath, setPendingPanelPath] = useState([]);
     const [isDraggingPattern, setIsDraggingPattern] = useState(false);
     const [isCustomMullionMode, setIsCustomMullionMode] = useState(false);
-
+    const [isSelectSystemModalOpen, setIsSelectSystemModalOpen] = useState(false);
 
     // Use ref for panel ID counter to persist across renders
     const panelIdCounter = useRef(1);
@@ -349,6 +350,41 @@ export default function DesignConfiguratorPage({ params }) {
         return { type: 'glass', id: String(panelIdCounter.current++) };
     };
 
+    const createSlidingNode = (pattern, systemConfig) => {
+        return {
+            type: 'sliding',
+            tracks: pattern.tracks,
+            brand: systemConfig.brand,
+            system: systemConfig.system,
+            ratios: pattern.ratios,
+            children: pattern.panels.map((panel) => ({
+                type: 'glass',
+                id: String(panelIdCounter.current++),
+                sashDirection: panel.direction,
+                sashLabel: panel.sashId,
+            })),
+        };
+    };
+
+    const handleSelectSystemConfirm = (systemConfig) => {
+        if (!pendingPattern) return;
+
+        const newNode = createSlidingNode(pendingPattern, systemConfig);
+
+        if (!pendingPanelId) {
+            pushStructure(newNode);
+        } else {
+            const updatedStructure = updatePanelInTree(windowStructure, pendingPanelPath, newNode);
+            pushStructure(updatedStructure);
+            setSelectedPanelId(null);
+            setSelectedPanelPath([]);
+        }
+
+        setPendingPattern(null);
+        setPendingPanelId(null);
+        setPendingPanelPath([]);
+    };
+
     const handleMultipleMullionConfirm = (config) => {
         if (!pendingPattern) return;
 
@@ -388,6 +424,15 @@ export default function DesignConfiguratorPage({ params }) {
         setSelectedPanelId(panelId);
         setSelectedPanelPath(panelPath);
 
+        // Sliding patterns route to the Select System modal
+        if (pattern.type === 'sliding') {
+            setPendingPattern(pattern);
+            setPendingPanelId(panelId);
+            setPendingPanelPath([...panelPath]);
+            setIsSelectSystemModalOpen(true);
+            return;
+        }
+
         // Check if pattern requires configuration
         if (pattern.requiresConfig) {
             setPendingPattern(pattern);
@@ -396,8 +441,6 @@ export default function DesignConfiguratorPage({ params }) {
             setIsMultipleMullionModalOpen(true);
             return;
         }
-
-
 
         // Apply pattern directly to the panel
         applyPatternToPanel(pattern, panelId, panelPath);
@@ -795,6 +838,15 @@ export default function DesignConfiguratorPage({ params }) {
                 direction={pendingPattern?.type?.includes('vertical') ? 'vertical' : 'horizontal'}
             />
 
+            {/* Select System Modal (for sliding designs) */}
+            <SelectSystemModal
+                isOpen={isSelectSystemModalOpen}
+                onClose={() => {
+                    setIsSelectSystemModalOpen(false);
+                    setPendingPattern(null);
+                }}
+                onConfirm={handleSelectSystemConfirm}
+            />
 
         </div>
     );
