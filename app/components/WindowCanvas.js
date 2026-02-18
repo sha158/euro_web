@@ -265,6 +265,105 @@ function renderWindowNode(node, x, y, width, height, scale, selectedPanelId, dra
             />
         );
 
+        // --- Add-on overlay ---
+        if (node.addon) {
+            const ax = displayX + glassInset + 4;
+            const ay = displayY + glassInset + 4;
+            const aw = displayWidth - glassInset * 2 - 8;
+            const ah = displayHeight - glassInset * 2 - 8;
+            const acx = ax + aw / 2;
+            const acy = ay + ah / 2;
+
+            if (node.addon === 'fan') {
+                elements.push(
+                    <g key={`addon-${uniqueId}`} style={{ pointerEvents: 'none' }}>
+                        <circle cx={acx} cy={acy} r={Math.min(aw, ah) * 0.4} fill="none" stroke="#64748b" strokeWidth="1.5" />
+                        <circle cx={acx} cy={acy} r={4} fill="#64748b" />
+                        {[0,60,120,180,240,300].map(deg => {
+                            const bladeR = Math.min(aw, ah) * 0.35;
+                            const rad = deg * Math.PI / 180;
+                            const r1 = (deg - 30) * Math.PI / 180;
+                            const r2 = (deg + 30) * Math.PI / 180;
+                            return <path key={deg} d={`M${acx},${acy} Q${acx + bladeR * 0.7 * Math.cos(r1)},${acy + bladeR * 0.7 * Math.sin(r1)} ${acx + bladeR * Math.cos(rad)},${acy + bladeR * Math.sin(rad)} Q${acx + bladeR * 0.7 * Math.cos(r2)},${acy + bladeR * 0.7 * Math.sin(r2)} ${acx},${acy}`} fill="#94a3b8" fillOpacity="0.4" stroke="#64748b" strokeWidth="0.6" />;
+                        })}
+                    </g>
+                );
+            } else if (node.addon === 'louver') {
+                const slats = 8;
+                elements.push(
+                    <g key={`addon-${uniqueId}`} style={{ pointerEvents: 'none' }}>
+                        {Array.from({ length: slats }, (_, i) => {
+                            const sy = ay + (ah / (slats + 1)) * (i + 1);
+                            return <line key={i} x1={ax + 4} y1={sy} x2={ax + aw - 4} y2={sy + 2} stroke="#64748b" strokeWidth="2" strokeLinecap="round" />;
+                        })}
+                    </g>
+                );
+            } else if (node.addon === 'georgian') {
+                elements.push(
+                    <g key={`addon-${uniqueId}`} style={{ pointerEvents: 'none' }}>
+                        <line x1={ax + aw * 0.33} y1={ay} x2={ax + aw * 0.33} y2={ay + ah} stroke="#64748b" strokeWidth="1.5" />
+                        <line x1={ax + aw * 0.66} y1={ay} x2={ax + aw * 0.66} y2={ay + ah} stroke="#64748b" strokeWidth="1.5" />
+                        <line x1={ax} y1={ay + ah * 0.25} x2={ax + aw} y2={ay + ah * 0.25} stroke="#64748b" strokeWidth="1.5" />
+                        <line x1={ax} y1={ay + ah * 0.5} x2={ax + aw} y2={ay + ah * 0.5} stroke="#64748b" strokeWidth="1.5" />
+                        <line x1={ax} y1={ay + ah * 0.75} x2={ax + aw} y2={ay + ah * 0.75} stroke="#64748b" strokeWidth="1.5" />
+                    </g>
+                );
+            } else if (node.addon === 'mesh') {
+                const meshStep = 6;
+                elements.push(
+                    <g key={`addon-${uniqueId}`} style={{ pointerEvents: 'none' }}>
+                        {Array.from({ length: Math.ceil(aw / meshStep) }, (_, i) => (
+                            <line key={`v${i}`} x1={ax + i * meshStep} y1={ay} x2={ax + i * meshStep} y2={ay + ah} stroke="#94a3b8" strokeWidth="0.3" />
+                        ))}
+                        {Array.from({ length: Math.ceil(ah / meshStep) }, (_, i) => (
+                            <line key={`h${i}`} x1={ax} y1={ay + i * meshStep} x2={ax + aw} y2={ay + i * meshStep} stroke="#94a3b8" strokeWidth="0.3" />
+                        ))}
+                        <rect x={ax + aw - 6} y={acy - 6} width="4" height="12" rx="1" fill="#64748b" fillOpacity="0.5" stroke="none" />
+                    </g>
+                );
+            } else if (node.addon === 'fixed') {
+                elements.push(
+                    <g key={`addon-${uniqueId}`} style={{ pointerEvents: 'none' }}>
+                        <rect x={ax + 6} y={ay + 6} width={aw - 12} height={ah - 12} fill="none" stroke="#64748b" strokeWidth="1.2" strokeDasharray="3 3" />
+                    </g>
+                );
+            } else if (node.addon === 'acgrill') {
+                const grillSlats = 6;
+                elements.push(
+                    <g key={`addon-${uniqueId}`} style={{ pointerEvents: 'none' }}>
+                        {Array.from({ length: grillSlats }, (_, i) => {
+                            const sy = ay + (ah / (grillSlats + 1)) * (i + 1);
+                            return <line key={i} x1={ax + 8} y1={sy} x2={ax + aw - 16} y2={sy} stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" />;
+                        })}
+                        {[0.3, 0.5, 0.7].map((f, i) => (
+                            <circle key={i} cx={ax + aw - 8} cy={ay + ah * f} r="2" fill="#64748b" />
+                        ))}
+                    </g>
+                );
+            } else if (node.addon === 'grid') {
+                elements.push(
+                    <g key={`addon-${uniqueId}`} style={{ pointerEvents: 'none' }}>
+                        <line x1={ax + aw * 0.33} y1={ay} x2={ax + aw * 0.33} y2={ay + ah} stroke="#64748b" strokeWidth="1.5" />
+                        <line x1={ax + aw * 0.66} y1={ay} x2={ax + aw * 0.66} y2={ay + ah} stroke="#64748b" strokeWidth="1.5" />
+                        <line x1={ax} y1={ay + ah * 0.33} x2={ax + aw} y2={ay + ah * 0.33} stroke="#64748b" strokeWidth="1.5" />
+                        <line x1={ax} y1={ay + ah * 0.66} x2={ax + aw} y2={ay + ah * 0.66} stroke="#64748b" strokeWidth="1.5" />
+                    </g>
+                );
+            }
+
+            // Add-on label badge at bottom of glass
+            const addonLabel = { fan: 'FAN', louver: 'LOUVER', georgian: 'GEORGIAN', mesh: 'MESH', fixed: 'FIXED', acgrill: 'AC GRILL', grid: 'GRID' }[node.addon] || node.addon.toUpperCase();
+            const labelW = Math.min(aw, 60);
+            elements.push(
+                <g key={`addon-label-${uniqueId}`} style={{ pointerEvents: 'none' }}>
+                    <rect x={ax} y={ay + ah - 14} width={labelW} height="14" rx="2" fill="white" fillOpacity="0.85" stroke="#94a3b8" strokeWidth="0.5" />
+                    <g transform={isOutside ? `translate(${ax + labelW / 2}, 0) scale(-1, 1) translate(${-(ax + labelW / 2)}, 0)` : undefined}>
+                        <text x={ax + labelW / 2} y={ay + ah - 4} textAnchor="middle" fontSize="8" fill="#475569" fontWeight="600" fontFamily="Inter, sans-serif">{addonLabel}</text>
+                    </g>
+                </g>
+            );
+        }
+
         // --- Corner reference dots (small red marks at extreme corners) ---
         const dotR = 1.5;
         const dotColor = "#ef4444";

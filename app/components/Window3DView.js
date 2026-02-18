@@ -378,6 +378,9 @@ function DimensionInfoBar({ width, height, windowStructure }) {
         if (node.mullionType === 'corner') return 'Corner 90°';
         if (node.mullionType === 'bay') return 'Bay 135°';
         if (node.mullionType === 'coupling') return 'Coupling';
+        if (node.mullionType === 'coupler-vertical') return 'Vertical Coupling';
+        if (node.mullionType === 'coupler-horizontal') return 'Horizontal Coupling';
+        if (node.mullionType === 'coupler-angular') return 'Angular Coupling';
         if (node.type === 'split-vertical') return `Vertical Split (${node.children?.length || 0})`;
         if (node.type === 'split-horizontal') return `Horizontal Split (${node.children?.length || 0})`;
         return 'Custom';
