@@ -106,22 +106,28 @@ export default function OpportunitiesPage() {
     };
 
     const handleCreate = async (data) => {
-        const newOpportunity = {
-            id: `OPP-${Math.floor(Math.random() * 10000)}`, // Simple ID generation
-            projectName: data.projectName,
-            contact: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
-            contactNumber: data.phone || 'N/A',
-            location: data.city || 'Unknown',
-            account: data.projectName, // Defaulting account to project name if not distinct
-            managedBy: 'Admin', // Default value since field was removed
-            stage: 'Lead', // Default stage
-            status: 'active', // Default status to appear in Active/All
-            estimatedValue: Number(data.estimatedValue) || 0,
-            ...data
-        };
+        try {
+            const newOpportunity = {
+                id: `OPP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                projectName: data.projectName || 'Untitled',
+                contact: `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'N/A',
+                contactNumber: data.phone || 'N/A',
+                location: data.city || 'Unknown',
+                account: data.projectName || 'N/A',
+                managedBy: 'Admin',
+                stage: 'Lead',
+                status: 'active',
+                estimatedValue: Number(data.estimatedValue) || 0,
+                createdAt: new Date().toISOString(),
+                ...data
+            };
 
-        await addOpportunity(newOpportunity);
-        setIsModalOpen(false);
+            await addOpportunity(newOpportunity);
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error('Failed to create opportunity:', error);
+            alert('Failed to create opportunity. Please try again.');
+        }
     };
 
     if (loading) {

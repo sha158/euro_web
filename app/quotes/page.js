@@ -111,21 +111,26 @@ export default function QuotesPage() {
     ];
 
     const handleCreate = async (data) => {
-        const newQuote = {
-            id: `Q-${Math.floor(Math.random() * 10000)}`,
-            projectName: data.opportunity,
-            revisionTitle: 'Initial Quote',
-            revisionNo: '001',
-            contact: data.opportunityDetails?.contact || 'Unknown',
-            area: 0,
-            value: 0,
-            status: 'active',
-            date: new Date().toISOString(),
-            ...data
-        };
+        try {
+            const newQuote = {
+                id: `Q-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                projectName: data.opportunity,
+                revisionTitle: 'Initial Quote',
+                revisionNo: '001',
+                contact: data.opportunityDetails?.contact || 'Unknown',
+                area: 0,
+                value: 0,
+                status: 'active',
+                date: new Date().toISOString(),
+                ...data
+            };
 
-        await addQuote(newQuote);
-        setIsModalOpen(false);
+            await addQuote(newQuote);
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error('Failed to create quote:', error);
+            alert('Failed to create quote. Please try again.');
+        }
     };
 
     if (loading) {
