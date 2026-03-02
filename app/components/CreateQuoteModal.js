@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { opportunities } from '../data/mockData';
+import { useState } from 'react';
+import { useOpportunities } from '../lib/useFirestore';
 
 export default function CreateQuoteModal({ onClose, onSave }) {
     const [formData, setFormData] = useState({
@@ -9,19 +9,7 @@ export default function CreateQuoteModal({ onClose, onSave }) {
         supplyEnd: ''
     });
 
-    const [opportunitiesList, setOpportunitiesList] = useState(opportunities);
-
-    // Load opportunities from local storage to include newly created ones
-    useEffect(() => {
-        const saved = localStorage.getItem('opportunities');
-        if (saved) {
-            try {
-                setOpportunitiesList(JSON.parse(saved));
-            } catch (e) {
-                console.error('Failed to parse opportunities from local storage');
-            }
-        }
-    }, []);
+    const { opportunities: opportunitiesList } = useOpportunities();
 
     const handleChange = (e) => {
         const { name, value } = e.target;

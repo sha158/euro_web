@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
-const menuItems = [
+const topMenuItems = [
     {
         name: 'Dashboard',
         path: '/',
@@ -42,6 +42,95 @@ const menuItems = [
     }
 ];
 
+const settingsItem = {
+    name: 'Settings',
+    path: '/settings',
+    icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+    )
+};
+
+function NavItem({ item, isActive, isExpanded }) {
+    return (
+        <Link
+            href={item.path}
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                padding: '12px 16px',
+                marginBottom: '4px',
+                borderRadius: '10px',
+                color: isActive ? '#38bdf8' : 'var(--text-muted)',
+                background: isActive
+                    ? 'linear-gradient(135deg, rgba(56,189,248,0.1) 0%, rgba(59,130,246,0.06) 100%)'
+                    : 'transparent',
+                textDecoration: 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: isActive
+                    ? '0 0 20px rgba(56,189,248,0.08), inset 0 0 20px rgba(56,189,248,0.03)'
+                    : 'none',
+                border: isActive
+                    ? '1px solid rgba(56,189,248,0.12)'
+                    : '1px solid transparent',
+            }}
+            onMouseOver={(e) => {
+                if (!isActive) {
+                    e.currentTarget.style.background = 'rgba(30, 45, 71, 0.6)';
+                    e.currentTarget.style.color = '#e2e8f0';
+                    e.currentTarget.style.borderColor = 'rgba(148,163,184,0.1)';
+                }
+            }}
+            onMouseOut={(e) => {
+                if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                    e.currentTarget.style.borderColor = 'transparent';
+                }
+            }}
+        >
+            {isActive && (
+                <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '3px',
+                    height: '20px',
+                    background: 'linear-gradient(180deg, #38bdf8, #3b82f6)',
+                    borderRadius: '0 3px 3px 0',
+                    boxShadow: '0 0 8px rgba(56,189,248,0.5)',
+                }} />
+            )}
+            <span style={{
+                display: 'flex',
+                alignItems: 'center',
+                flexShrink: 0,
+                filter: isActive ? 'drop-shadow(0 0 4px rgba(56,189,248,0.4))' : 'none',
+                transition: 'filter 0.3s ease',
+            }}>
+                {item.icon}
+            </span>
+            <span style={{
+                fontSize: '14px',
+                fontWeight: isActive ? '600' : '500',
+                whiteSpace: 'nowrap',
+                opacity: isExpanded ? 1 : 0,
+                transform: isExpanded ? 'translateX(0)' : 'translateX(-8px)',
+                transition: 'opacity 0.3s ease 0.05s, transform 0.3s ease 0.05s',
+                letterSpacing: '0.3px',
+            }}>
+                {item.name}
+            </span>
+        </Link>
+    );
+}
+
 export default function Sidebar() {
     const pathname = usePathname();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -62,7 +151,7 @@ export default function Sidebar() {
                 flexDirection: 'column',
                 padding: '16px 0',
                 transition: 'width 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-                zIndex: 100,
+                zIndex: 200,
                 overflow: 'hidden',
                 boxShadow: '4px 0 24px rgba(0, 0, 0, 0.3)',
             }}
@@ -120,88 +209,12 @@ export default function Sidebar() {
 
             {/* Navigation */}
             <nav style={{ flex: 1, padding: '0 12px' }}>
-                {menuItems.map((item, index) => {
+                {topMenuItems.map((item) => {
                     const isActive = pathname === item.path ||
                         (item.path !== '/' && pathname.startsWith(item.path));
 
                     return (
-                        <Link
-                            key={item.path}
-                            href={item.path}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '14px',
-                                padding: '12px 16px',
-                                marginBottom: '4px',
-                                borderRadius: '10px',
-                                color: isActive ? '#38bdf8' : 'var(--text-muted)',
-                                background: isActive
-                                    ? 'linear-gradient(135deg, rgba(56,189,248,0.1) 0%, rgba(59,130,246,0.06) 100%)'
-                                    : 'transparent',
-                                textDecoration: 'none',
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                position: 'relative',
-                                overflow: 'hidden',
-                                boxShadow: isActive
-                                    ? '0 0 20px rgba(56,189,248,0.08), inset 0 0 20px rgba(56,189,248,0.03)'
-                                    : 'none',
-                                border: isActive
-                                    ? '1px solid rgba(56,189,248,0.12)'
-                                    : '1px solid transparent',
-                            }}
-                            onMouseOver={(e) => {
-                                if (!isActive) {
-                                    e.currentTarget.style.background = 'rgba(30, 45, 71, 0.6)';
-                                    e.currentTarget.style.color = '#e2e8f0';
-                                    e.currentTarget.style.borderColor = 'rgba(148,163,184,0.1)';
-                                }
-                            }}
-                            onMouseOut={(e) => {
-                                if (!isActive) {
-                                    e.currentTarget.style.background = 'transparent';
-                                    e.currentTarget.style.color = 'var(--text-muted)';
-                                    e.currentTarget.style.borderColor = 'transparent';
-                                }
-                            }}
-                        >
-                            {/* Active Accent Bar */}
-                            {isActive && (
-                                <div style={{
-                                    position: 'absolute',
-                                    left: 0,
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    width: '3px',
-                                    height: '20px',
-                                    background: 'linear-gradient(180deg, #38bdf8, #3b82f6)',
-                                    borderRadius: '0 3px 3px 0',
-                                    boxShadow: '0 0 8px rgba(56,189,248,0.5)',
-                                }} />
-                            )}
-                            {/* Icon with Glow */}
-                            <span style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                flexShrink: 0,
-                                filter: isActive ? 'drop-shadow(0 0 4px rgba(56,189,248,0.4))' : 'none',
-                                transition: 'filter 0.3s ease',
-                            }}>
-                                {item.icon}
-                            </span>
-                            {/* Nav Label */}
-                            <span style={{
-                                fontSize: '14px',
-                                fontWeight: isActive ? '600' : '500',
-                                whiteSpace: 'nowrap',
-                                opacity: isExpanded ? 1 : 0,
-                                transform: isExpanded ? 'translateX(0)' : 'translateX(-8px)',
-                                transition: 'opacity 0.3s ease 0.05s, transform 0.3s ease 0.05s',
-                                letterSpacing: '0.3px',
-                            }}>
-                                {item.name}
-                            </span>
-                        </Link>
+                        <NavItem key={item.path} item={item} isActive={isActive} isExpanded={isExpanded} />
                     );
                 })}
             </nav>
@@ -213,75 +226,13 @@ export default function Sidebar() {
                 background: 'linear-gradient(90deg, transparent, #374151, #4b5563, #374151, transparent)',
             }} />
 
-            {/* User Profile */}
-            <div style={{
-                padding: '16px 12px',
-            }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                }}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.background = 'rgba(30, 45, 71, 0.6)';
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                    }}
-                >
-                    {/* Avatar with Metallic Ring */}
-                    <div style={{
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '50%',
-                        padding: '2px',
-                        background: 'linear-gradient(135deg, #64748b, #94a3b8, #64748b)',
-                        flexShrink: 0,
-                    }}>
-                        <div style={{
-                            width: '100%',
-                            height: '100%',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #1e3a5f 0%, #0f1729 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            color: '#94a3b8',
-                            letterSpacing: '0.5px',
-                        }}>
-                            AD
-                        </div>
-                    </div>
-                    <div style={{
-                        overflow: 'hidden',
-                        opacity: isExpanded ? 1 : 0,
-                        transform: isExpanded ? 'translateX(0)' : 'translateX(-8px)',
-                        transition: 'opacity 0.3s ease 0.05s, transform 0.3s ease 0.05s',
-                    }}>
-                        <div style={{
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            color: '#e2e8f0',
-                            whiteSpace: 'nowrap',
-                        }}>
-                            Admin User
-                        </div>
-                        <div style={{
-                            fontSize: '11px',
-                            color: '#64748b',
-                            whiteSpace: 'nowrap',
-                            fontFamily: "'JetBrains Mono', monospace",
-                        }}>
-                            admin@euroerp.com
-                        </div>
-                    </div>
-                </div>
+            {/* Settings */}
+            <div style={{ padding: '16px 12px' }}>
+                <NavItem
+                    item={settingsItem}
+                    isActive={pathname === settingsItem.path || pathname.startsWith(settingsItem.path)}
+                    isExpanded={isExpanded}
+                />
             </div>
         </aside>
     );

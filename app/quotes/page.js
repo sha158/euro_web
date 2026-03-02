@@ -1,35 +1,19 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { quotes } from '../data/mockData';
 import TopBar from '../components/TopBar';
 import Table from '../components/Table';
 import CreateQuoteModal from '../components/CreateQuoteModal';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useQuotes } from '../lib/useFirestore';
+import { addQuote } from '../lib/firestoreService';
 
 export default function QuotesPage() {
-    // Initialize with mock data, updated by localStorage
-    const [quotesData, setQuotesData] = useState(quotes);
+    const { quotes: quotesData, loading } = useQuotes();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('active');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-
-    // Load from LocalStorage
-    useEffect(() => {
-        const saved = localStorage.getItem('quotes');
-        if (saved) {
-            try {
-                setQuotesData(JSON.parse(saved));
-            } catch (e) {
-                console.error('Failed to parse quotes from local storage');
-            }
-        }
-    }, []);
-
-    // Save to LocalStorage
-    useEffect(() => {
-        localStorage.setItem('quotes', JSON.stringify(quotesData));
-    }, [quotesData]);
 
     // Tabs Configuration
     const tabs = [
@@ -126,7 +110,7 @@ export default function QuotesPage() {
         }
     ];
 
-    const handleCreate = (data) => {
+    const handleCreate = async (data) => {
         const newQuote = {
             id: `Q-${Math.floor(Math.random() * 10000)}`,
             projectName: data.opportunity,
@@ -140,9 +124,18 @@ export default function QuotesPage() {
             ...data
         };
 
-        setQuotesData(prev => [newQuote, ...prev]);
+        await addQuote(newQuote);
         setIsModalOpen(false);
     };
+
+    if (loading) {
+        return (
+            <>
+                <TopBar title="Quotes" subtitle="Manage project proposals" />
+                <LoadingSpinner message="Loading quotes..." />
+            </>
+        );
+    }
 
     return (
         <>

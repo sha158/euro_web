@@ -24,55 +24,89 @@ export default function SplashScreen({ onFinish }) {
 
     return (
         <div
+            className="splash-hero-container"
             style={{
                 position: 'fixed',
                 top: 0,
                 left: 0,
-                width: '100%',
-                height: '100%',
+                width: '100vw',
+                height: '100vh',
                 zIndex: 9999,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#050a14',
+                background: '#050a14',
                 overflow: 'hidden',
                 opacity: opacity,
                 transition: 'opacity 0.5s ease-out'
             }}
         >
-            {/* Grid Background */}
             <div
-                className="grid-background"
+                className="splash-grid-layer"
                 style={{
                     position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    opacity: 0.4
+                    inset: '-16vmax',
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                    backgroundImage: `
+                        repeating-linear-gradient(to right, rgba(56, 189, 248, 0.30) 0 1px, transparent 1px 48px),
+                        repeating-linear-gradient(to bottom, rgba(56, 189, 248, 0.30) 0 1px, transparent 1px 48px),
+                        radial-gradient(circle at center, rgba(56, 189, 248, 0.18) 0%, rgba(56, 189, 248, 0.08) 34%, rgba(56, 189, 248, 0.03) 56%, transparent 76%)
+                    `,
+                    backgroundPosition: 'center',
+                    opacity: 1,
+                    filter: 'blur(0.3px)',
+                    WebkitMaskImage: 'radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.92) 26%, rgba(0, 0, 0, 0.62) 52%, rgba(0, 0, 0, 0.2) 68%, transparent 82%)',
+                    maskImage: 'radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.92) 26%, rgba(0, 0, 0, 0.62) 52%, rgba(0, 0, 0, 0.2) 68%, transparent 82%)'
                 }}
             ></div>
-
-            {/* Radial Gradient Overlay for depth */}
             <div
+                className="splash-radial-fade-layer"
                 style={{
                     position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'radial-gradient(circle at center, transparent 0%, #050a14 100%)'
+                    inset: 0,
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                    background: 'radial-gradient(circle at center, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.08) 25%, rgba(255, 255, 255, 0.03) 45%, transparent 70%)',
+                    mixBlendMode: 'screen',
+                    opacity: 0.9
+                }}
+            ></div>
+            <div
+                className="splash-center-glow-layer"
+                style={{
+                    position: 'absolute',
+                    inset: 0,
+                    pointerEvents: 'none',
+                    zIndex: 3,
+                    background: `
+                        radial-gradient(circle at center, rgba(56, 189, 248, 0.30) 0%, rgba(56, 189, 248, 0.14) 18%, rgba(56, 189, 248, 0.05) 38%, transparent 64%),
+                        radial-gradient(circle at center, rgba(255, 255, 255, 0.11) 0%, transparent 42%)
+                    `,
+                    mixBlendMode: 'screen',
+                    opacity: 0.85,
+                    filter: 'blur(12px)'
                 }}
             ></div>
 
             {/* Content */}
-            <div style={{
-                position: 'relative',
-                zIndex: 10,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-            }}>
+            <div
+                className="splash-content-layer"
+                style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 10,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    width: 'min(92vw, 980px)',
+                    margin: 0
+                }}
+            >
                 <div style={{ display: 'flex', marginBottom: '1rem' }}>
                     {"EURO".split("").map((letter, index) => (
                         <span

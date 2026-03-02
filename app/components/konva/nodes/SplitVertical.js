@@ -5,7 +5,9 @@ import CenteredText from '../shared/CenteredText';
 import { FRAME_COLOR } from '../shared/constants';
 import { getFramePalette } from '../shared/framePalette';
 
-export default function SplitVertical({ node, x, y, width, height, scale, selectedPanelId, dragOverPanelId, path, isOutside, frameColor = FRAME_COLOR }) {
+const MIN_PANEL_RATIO = 0.08;
+
+export default function SplitVertical({ node, x, y, width, height, scale, selectedPanelId, dragOverPanelId, path, isOutside, frameColor = FRAME_COLOR, onSplitRatioChange }) {
     const childWidths = node.ratios.map(r => width * r);
     const isCoupler = node.mullionType === 'coupler-vertical' || node.mullionType === 'coupler-angular' || node.mullionType === 'coupling';
     const couplerLabel = node.mullionType === 'coupler-angular' ? 'LC' : 'C';
@@ -13,6 +15,9 @@ export default function SplitVertical({ node, x, y, width, height, scale, select
     const couplerBadgeFill = node.mullionType === 'coupler-angular'
         ? palette.couplerFill
         : '#ffffff';
+
+    const canDragMullion = onSplitRatioChange && node.children && node.children.length === 2 && !isCoupler;
+    const mullionDragX = (x + childWidths[0]) * scale;
 
     return (
         <Group>
@@ -41,6 +46,7 @@ export default function SplitVertical({ node, x, y, width, height, scale, select
                                 path={[...path, i]}
                                 isOutside={isOutside}
                                 frameColor={frameColor}
+                                onSplitRatioChange={onSplitRatioChange}
                             />
                         </Group>
                     ) : (
@@ -57,6 +63,7 @@ export default function SplitVertical({ node, x, y, width, height, scale, select
                             path={[...path, i]}
                             isOutside={isOutside}
                             frameColor={frameColor}
+                            onSplitRatioChange={onSplitRatioChange}
                         />
                     )
                 );
@@ -175,6 +182,30 @@ export default function SplitVertical({ node, x, y, width, height, scale, select
                         );
                     });
                 })()
+            )}
+
+            {/* Draggable mullion handle (2-panel split only) */}
+            {canDragMullion && (
+                <Rect
+                    x={mullionDragX - 6}
+                    y={y * scale}
+                    width={12}
+                    height={height * scale}
+                    fill="transparent"
+                    listening={true}
+                    draggable
+                    dragBoundFunc={(pos) => {
+                        const minX = (x + width * MIN_PANEL_RATIO) * scale - 6;
+                        const maxX = (x + width * (1 - MIN_PANEL_RATIO)) * scale - 6;
+                        return { x: Math.max(minX, Math.min(maxX, pos.x)), y: y * scale };
+                    }}
+                    onDragEnd={(e) => {
+                        const centerX = e.target.x() + 6;
+                        const leftRatio = (centerX / scale - x) / width;
+                        const r = Math.max(MIN_PANEL_RATIO, Math.min(1 - MIN_PANEL_RATIO, leftRatio));
+                        onSplitRatioChange(path, [r, 1 - r]);
+                    }}
+                />
             )}
         </Group>
     );

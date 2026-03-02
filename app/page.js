@@ -1,15 +1,73 @@
+'use client';
+
+import { useState, useMemo } from 'react';
 import TopBar from './components/TopBar';
 import StatCard from './components/StatCard';
 import SalesChart from './components/SalesChart';
 import ActivityFeed from './components/ActivityFeed';
 import StageChart from './components/StageChart';
 import SplashScreen from './components/SplashScreen';
-import { dashboardStats, salesAnalytics, opportunityStages, recentActivities } from './data/mockData';
+import { salesAnalytics, recentActivities } from './data/mockData';
+import { useOpportunities, useQuotes } from './lib/useFirestore';
 
 export default function Dashboard() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  const { opportunities } = useOpportunities();
+  const { quotes } = useQuotes();
+
+  // Compute dashboard stats from live Firestore data
+  const dashboardStats = useMemo(() => {
+    const wonOpps = opportunities.filter(o => o.status === 'won');
+    const lostOpps = opportunities.filter(o => o.status === 'lost');
+    const activeQuotes = quotes.filter(q => q.status === 'active');
+
+    return {
+      createdOpportunity: {
+        count: opportunities.length,
+        value: opportunities.reduce((sum, o) => sum + (Number(o.estimatedValue) || 0), 0),
+        trend: '+12%',
+        trendUp: true,
+      },
+      newlyQuoted: {
+        count: activeQuotes.length,
+        value: activeQuotes.reduce((sum, q) => sum + (Number(q.value) || 0), 0),
+        trend: '+8%',
+        trendUp: true,
+      },
+      wonOpportunity: {
+        count: wonOpps.length,
+        value: wonOpps.reduce((sum, o) => sum + (Number(o.estimatedValue) || 0), 0),
+        trend: '+23%',
+        trendUp: true,
+      },
+      lostOpportunity: {
+        count: lostOpps.length,
+        value: lostOpps.reduce((sum, o) => sum + (Number(o.estimatedValue) || 0), 0),
+        trend: '-5%',
+        trendUp: false,
+      },
+    };
+  }, [opportunities, quotes]);
+
+  const opportunityStages = useMemo(() => {
+    const stages = ['Lead', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
+    return stages.map(name => {
+      const matching = opportunities.filter(o => o.stage === name);
+      return {
+        name,
+        count: matching.length,
+        value: matching.reduce((sum, o) => sum + (Number(o.estimatedValue) || 0), 0),
+      };
+    });
+  }, [opportunities]);
+
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
   return (
     <>
-      <SplashScreen />
       <TopBar title="Dashboard" subtitle="Welcome back, Admin User" />
 
       <div style={{ padding: '32px' }}>

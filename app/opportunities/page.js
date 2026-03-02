@@ -1,33 +1,17 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { opportunities } from '../data/mockData';
+import { useState } from 'react';
 import TopBar from '../components/TopBar';
 import Table from '../components/Table';
 import CreateOpportunityModal from '../components/CreateOpportunityModal';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useOpportunities } from '../lib/useFirestore';
+import { addOpportunity } from '../lib/firestoreService';
 
 export default function OpportunitiesPage() {
-    // Initialize with mock data, will be updated by useEffect if localStorage exists
-    const [opportunitiesData, setOpportunitiesData] = useState(opportunities);
+    const { opportunities: opportunitiesData, loading } = useOpportunities();
     const [activeTab, setActiveTab] = useState('active');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-
-    // Load from LocalStorage on mount
-    useEffect(() => {
-        const saved = localStorage.getItem('opportunities');
-        if (saved) {
-            try {
-                setOpportunitiesData(JSON.parse(saved));
-            } catch (e) {
-                console.error('Failed to parse opportunities from local storage');
-            }
-        }
-    }, []);
-
-    // Save to LocalStorage whenever data changes
-    useEffect(() => {
-        localStorage.setItem('opportunities', JSON.stringify(opportunitiesData));
-    }, [opportunitiesData]);
 
     // Tabs Configuration
     const tabs = [
@@ -121,7 +105,7 @@ export default function OpportunitiesPage() {
         alert(`Clicked on opportunity: ${row.projectName}`);
     };
 
-    const handleCreate = (data) => {
+    const handleCreate = async (data) => {
         const newOpportunity = {
             id: `OPP-${Math.floor(Math.random() * 10000)}`, // Simple ID generation
             projectName: data.projectName,
@@ -136,10 +120,18 @@ export default function OpportunitiesPage() {
             ...data
         };
 
-        setOpportunitiesData(prev => [newOpportunity, ...prev]);
+        await addOpportunity(newOpportunity);
         setIsModalOpen(false);
-        // Alert removed for smoother experience
     };
+
+    if (loading) {
+        return (
+            <>
+                <TopBar title="Opportunities" subtitle="Manage your sales pipeline" />
+                <LoadingSpinner message="Loading opportunities..." />
+            </>
+        );
+    }
 
     return (
         <>

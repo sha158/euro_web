@@ -5,10 +5,10 @@ import SplitHorizontal from './SplitHorizontal';
 import SplitDiagonal from './SplitDiagonal';
 import SlidingWindow from './SlidingWindow';
 
-export default function WindowNode({ node, x, y, width, height, scale, selectedPanelId, dragOverPanelId, path, isOutside, frameColor }) {
+export default function WindowNode({ node, x, y, width, height, scale, selectedPanelId, dragOverPanelId, path, isOutside, frameColor, onSplitRatioChange }) {
     if (!node) return null;
 
-    const props = { node, x, y, width, height, scale, selectedPanelId, dragOverPanelId, path, isOutside, frameColor };
+    const props = { node, x, y, width, height, scale, selectedPanelId, dragOverPanelId, path, isOutside, frameColor, onSplitRatioChange };
 
     switch (node.type) {
         case 'glass':

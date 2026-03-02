@@ -273,84 +273,144 @@ const slidingCategories = [
 
 const slidingPatterns = [
     // ===== 2 Track X-X-X Panel =====
-    { id: 'sliding-2t-2p-rl', name: '2P \u2192\u2190', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
-        panels: mkPanels(['right','left']), ratios: eqRatios(2), icon: <SlidingIcon panels={['right','left']} /> },
-    { id: 'sliding-2t-3p-rfl', name: '3P \u2192+\u2190', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
-        panels: mkPanels(['right','fixed','left']), ratios: eqRatios(3), icon: <SlidingIcon panels={['right','fixed','left']} /> },
-    { id: 'sliding-2t-3p-rbl', name: '3P \u2192\u2194\u2190', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
-        panels: mkPanels(['right','both','left']), ratios: eqRatios(3), icon: <SlidingIcon panels={['right','both','left']} /> },
-    { id: 'sliding-2t-4p-brlb', name: '4P \u2194\u2192\u2190\u2194', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
-        panels: mkPanels(['both','right','left','both']), ratios: eqRatios(4), icon: <SlidingIcon panels={['both','right','left','both']} /> },
+    {
+        id: 'sliding-2t-2p-rl', name: '2P \u2192\u2190', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['right', 'left']), ratios: eqRatios(2), icon: <SlidingIcon panels={['right', 'left']} />
+    },
+    {
+        id: 'sliding-2t-3p-rfl', name: '3P \u2192+\u2190', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['right', 'fixed', 'left']), ratios: eqRatios(3), icon: <SlidingIcon panels={['right', 'fixed', 'left']} />
+    },
+    {
+        id: 'sliding-2t-3p-rbl', name: '3P \u2192\u2194\u2190', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['right', 'both', 'left']), ratios: eqRatios(3), icon: <SlidingIcon panels={['right', 'both', 'left']} />
+    },
+    {
+        id: 'sliding-2t-4p-brlb', name: '4P \u2194\u2192\u2190\u2194', category: '2t-xxp', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['both', 'right', 'left', 'both']), ratios: eqRatios(4), icon: <SlidingIcon panels={['both', 'right', 'left', 'both']} />
+    },
 
     // ===== 3 Track 3 Panel =====
-    { id: 'sliding-3t-3p-rbl', name: '3P \u2192\u2194\u2190', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
-        panels: mkPanels(['right','both','left']), ratios: [0.35,0.30,0.35], icon: <SlidingIcon panels={['right','both','left']} /> },
-    { id: 'sliding-3t-3p-rfl', name: '3P \u2192+\u2190', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
-        panels: mkPanels(['right','fixed','left']), ratios: [0.35,0.30,0.35], icon: <SlidingIcon panels={['right','fixed','left']} /> },
-    { id: 'sliding-3t-3p-rrr', name: '3P \u2192\u2192\u2192', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
-        panels: mkPanels(['right','right','right']), ratios: eqRatios(3), icon: <SlidingIcon panels={['right','right','right']} /> },
-    { id: 'sliding-3t-3p-lll', name: '3P \u2190\u2190\u2190', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
-        panels: mkPanels(['left','left','left']), ratios: eqRatios(3), icon: <SlidingIcon panels={['left','left','left']} /> },
+    {
+        id: 'sliding-3t-3p-rbl', name: '3P \u2192\u2194\u2190', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
+        panels: mkPanels(['right', 'both', 'left']), ratios: [0.35, 0.30, 0.35], icon: <SlidingIcon panels={['right', 'both', 'left']} />
+    },
+    {
+        id: 'sliding-3t-3p-rfl', name: '3P \u2192+\u2190', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
+        panels: mkPanels(['right', 'fixed', 'left']), ratios: [0.35, 0.30, 0.35], icon: <SlidingIcon panels={['right', 'fixed', 'left']} />
+    },
+    {
+        id: 'sliding-3t-3p-rrr', name: '3P \u2192\u2192\u2192', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
+        panels: mkPanels(['right', 'right', 'right']), ratios: eqRatios(3), icon: <SlidingIcon panels={['right', 'right', 'right']} />
+    },
+    {
+        id: 'sliding-3t-3p-lll', name: '3P \u2190\u2190\u2190', category: '3t-3p', type: 'sliding', requiresConfig: true, tracks: 3,
+        panels: mkPanels(['left', 'left', 'left']), ratios: eqRatios(3), icon: <SlidingIcon panels={['left', 'left', 'left']} />
+    },
 
     // ===== 2 Track 4 Panel Meeting =====
-    { id: 'sliding-2t-4p-meet-rlrl', name: '4P \u2192\u2190\u2192\u2190', category: '2t-4p-meeting', type: 'sliding', requiresConfig: true, tracks: 2,
-        panels: mkPanels(['right','left','right','left']), ratios: eqRatios(4), icon: <SlidingIcon panels={['right','left','right','left']} /> },
-    { id: 'sliding-2t-4p-meet-rbbl', name: '4P \u2192\u2194\u2194\u2190', category: '2t-4p-meeting', type: 'sliding', requiresConfig: true, tracks: 2,
-        panels: mkPanels(['right','both','both','left']), ratios: eqRatios(4), icon: <SlidingIcon panels={['right','both','both','left']} /> },
-    { id: 'sliding-2t-4p-meet-blrb', name: '4P \u2194\u2190\u2192\u2194', category: '2t-4p-meeting', type: 'sliding', requiresConfig: true, tracks: 2,
-        panels: mkPanels(['both','left','right','both']), ratios: eqRatios(4), icon: <SlidingIcon panels={['both','left','right','both']} /> },
+    {
+        id: 'sliding-2t-4p-meet-rlrl', name: '4P \u2192\u2190\u2192\u2190', category: '2t-4p-meeting', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['right', 'left', 'right', 'left']), ratios: eqRatios(4), icon: <SlidingIcon panels={['right', 'left', 'right', 'left']} />
+    },
+    {
+        id: 'sliding-2t-4p-meet-rbbl', name: '4P \u2192\u2194\u2194\u2190', category: '2t-4p-meeting', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['right', 'both', 'both', 'left']), ratios: eqRatios(4), icon: <SlidingIcon panels={['right', 'both', 'both', 'left']} />
+    },
+    {
+        id: 'sliding-2t-4p-meet-blrb', name: '4P \u2194\u2190\u2192\u2194', category: '2t-4p-meeting', type: 'sliding', requiresConfig: true, tracks: 2,
+        panels: mkPanels(['both', 'left', 'right', 'both']), ratios: eqRatios(4), icon: <SlidingIcon panels={['both', 'left', 'right', 'both']} />
+    },
 
     // ===== 4 Track 8 Panel Meeting =====
-    { id: 'sliding-4t-8p-meet-a', name: '8P \u2192\u2190\u2192\u2190\u2192\u2190\u2192\u2190', category: '4t-8p-meeting', type: 'sliding', requiresConfig: true, tracks: 4,
-        panels: mkPanels(['right','left','right','left','right','left','right','left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right','left','right','left','right','left','right','left']} /> },
-    { id: 'sliding-4t-8p-meet-b', name: '8P \u2192\u2194\u2190\u2192\u2194\u2190\u2192\u2190', category: '4t-8p-meeting', type: 'sliding', requiresConfig: true, tracks: 4,
-        panels: mkPanels(['right','both','left','right','both','left','right','left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right','both','left','right','both','left','right','left']} /> },
+    {
+        id: 'sliding-4t-8p-meet-a', name: '8P \u2192\u2190\u2192\u2190\u2192\u2190\u2192\u2190', category: '4t-8p-meeting', type: 'sliding', requiresConfig: true, tracks: 4,
+        panels: mkPanels(['right', 'left', 'right', 'left', 'right', 'left', 'right', 'left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right', 'left', 'right', 'left', 'right', 'left', 'right', 'left']} />
+    },
+    {
+        id: 'sliding-4t-8p-meet-b', name: '8P \u2192\u2194\u2190\u2192\u2194\u2190\u2192\u2190', category: '4t-8p-meeting', type: 'sliding', requiresConfig: true, tracks: 4,
+        panels: mkPanels(['right', 'both', 'left', 'right', 'both', 'left', 'right', 'left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right', 'both', 'left', 'right', 'both', 'left', 'right', 'left']} />
+    },
 
     // ===== 5 Track 5 Panel =====
-    { id: 'sliding-5t-5p-a', name: '5P \u2192\u2192+\u2190\u2190', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
-        panels: mkPanels(['right','right','fixed','left','left']), ratios: eqRatios(5), icon: <SlidingIcon panels={['right','right','fixed','left','left']} /> },
-    { id: 'sliding-5t-5p-b', name: '5P \u2192\u2194\u2194\u2194\u2190', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
-        panels: mkPanels(['right','both','both','both','left']), ratios: eqRatios(5), icon: <SlidingIcon panels={['right','both','both','both','left']} /> },
-    { id: 'sliding-5t-5p-c', name: '5P \u2192\u2192\u2192\u2192\u2192', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
-        panels: mkPanels(['right','right','right','right','right']), ratios: eqRatios(5), icon: <SlidingIcon panels={['right','right','right','right','right']} /> },
-    { id: 'sliding-5t-5p-d', name: '5P \u2190\u2190\u2190\u2190\u2190', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
-        panels: mkPanels(['left','left','left','left','left']), ratios: eqRatios(5), icon: <SlidingIcon panels={['left','left','left','left','left']} /> },
+    {
+        id: 'sliding-5t-5p-a', name: '5P \u2192\u2192+\u2190\u2190', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['right', 'right', 'fixed', 'left', 'left']), ratios: eqRatios(5), icon: <SlidingIcon panels={['right', 'right', 'fixed', 'left', 'left']} />
+    },
+    {
+        id: 'sliding-5t-5p-b', name: '5P \u2192\u2194\u2194\u2194\u2190', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['right', 'both', 'both', 'both', 'left']), ratios: eqRatios(5), icon: <SlidingIcon panels={['right', 'both', 'both', 'both', 'left']} />
+    },
+    {
+        id: 'sliding-5t-5p-c', name: '5P \u2192\u2192\u2192\u2192\u2192', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['right', 'right', 'right', 'right', 'right']), ratios: eqRatios(5), icon: <SlidingIcon panels={['right', 'right', 'right', 'right', 'right']} />
+    },
+    {
+        id: 'sliding-5t-5p-d', name: '5P \u2190\u2190\u2190\u2190\u2190', category: '5t-5p', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['left', 'left', 'left', 'left', 'left']), ratios: eqRatios(5), icon: <SlidingIcon panels={['left', 'left', 'left', 'left', 'left']} />
+    },
 
     // ===== 5 Track 10 Panel Meeting =====
-    { id: 'sliding-5t-10p-meet-a', name: '10P \u2192\u2190 \u00d75', category: '5t-10p-meeting', type: 'sliding', requiresConfig: true, tracks: 5,
-        panels: mkPanels(['right','left','right','left','right','left','right','left','right','left']), ratios: eqRatios(10), icon: <SlidingIcon panels={['right','left','right','left','right','left','right','left','right','left']} /> },
-    { id: 'sliding-5t-10p-meet-b', name: '10P \u2194\u2192\u2190 mix', category: '5t-10p-meeting', type: 'sliding', requiresConfig: true, tracks: 5,
-        panels: mkPanels(['right','both','left','right','both','left','right','both','left','left']), ratios: eqRatios(10), icon: <SlidingIcon panels={['right','both','left','right','both','left','right','both','left','left']} /> },
+    {
+        id: 'sliding-5t-10p-meet-a', name: '10P \u2192\u2190 \u00d75', category: '5t-10p-meeting', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['right', 'left', 'right', 'left', 'right', 'left', 'right', 'left', 'right', 'left']), ratios: eqRatios(10), icon: <SlidingIcon panels={['right', 'left', 'right', 'left', 'right', 'left', 'right', 'left', 'right', 'left']} />
+    },
+    {
+        id: 'sliding-5t-10p-meet-b', name: '10P \u2194\u2192\u2190 mix', category: '5t-10p-meeting', type: 'sliding', requiresConfig: true, tracks: 5,
+        panels: mkPanels(['right', 'both', 'left', 'right', 'both', 'left', 'right', 'both', 'left', 'left']), ratios: eqRatios(10), icon: <SlidingIcon panels={['right', 'both', 'left', 'right', 'both', 'left', 'right', 'both', 'left', 'left']} />
+    },
 
     // ===== 6 Track 6 Panel =====
-    { id: 'sliding-6t-6p-a', name: '6P \u2192\u2192\u2192\u2190\u2190\u2190', category: '6t-6p', type: 'sliding', requiresConfig: true, tracks: 6,
-        panels: mkPanels(['right','right','right','left','left','left']), ratios: eqRatios(6), icon: <SlidingIcon panels={['right','right','right','left','left','left']} /> },
-    { id: 'sliding-6t-6p-b', name: '6P \u2192\u2194\u2194\u2194\u2194\u2190', category: '6t-6p', type: 'sliding', requiresConfig: true, tracks: 6,
-        panels: mkPanels(['right','both','both','both','both','left']), ratios: eqRatios(6), icon: <SlidingIcon panels={['right','both','both','both','both','left']} /> },
-    { id: 'sliding-6t-6p-c', name: '6P \u2192\u2192+\u2190\u2190+', category: '6t-6p', type: 'sliding', requiresConfig: true, tracks: 6,
-        panels: mkPanels(['right','right','fixed','left','left','fixed']), ratios: eqRatios(6), icon: <SlidingIcon panels={['right','right','fixed','left','left','fixed']} /> },
+    {
+        id: 'sliding-6t-6p-a', name: '6P \u2192\u2192\u2192\u2190\u2190\u2190', category: '6t-6p', type: 'sliding', requiresConfig: true, tracks: 6,
+        panels: mkPanels(['right', 'right', 'right', 'left', 'left', 'left']), ratios: eqRatios(6), icon: <SlidingIcon panels={['right', 'right', 'right', 'left', 'left', 'left']} />
+    },
+    {
+        id: 'sliding-6t-6p-b', name: '6P \u2192\u2194\u2194\u2194\u2194\u2190', category: '6t-6p', type: 'sliding', requiresConfig: true, tracks: 6,
+        panels: mkPanels(['right', 'both', 'both', 'both', 'both', 'left']), ratios: eqRatios(6), icon: <SlidingIcon panels={['right', 'both', 'both', 'both', 'both', 'left']} />
+    },
+    {
+        id: 'sliding-6t-6p-c', name: '6P \u2192\u2192+\u2190\u2190+', category: '6t-6p', type: 'sliding', requiresConfig: true, tracks: 6,
+        panels: mkPanels(['right', 'right', 'fixed', 'left', 'left', 'fixed']), ratios: eqRatios(6), icon: <SlidingIcon panels={['right', 'right', 'fixed', 'left', 'left', 'fixed']} />
+    },
 
     // ===== 6 Track 12 Panel Meeting =====
-    { id: 'sliding-6t-12p-meet-a', name: '12P \u2192\u2190 \u00d76', category: '6t-12p-meeting', type: 'sliding', requiresConfig: true, tracks: 6,
-        panels: mkPanels(['right','left','right','left','right','left','right','left','right','left','right','left']), ratios: eqRatios(12), icon: <SlidingIcon panels={['right','left','right','left','right','left','right','left','right','left','right','left']} /> },
-    { id: 'sliding-6t-12p-meet-b', name: '12P \u2194\u2192\u2190 mix', category: '6t-12p-meeting', type: 'sliding', requiresConfig: true, tracks: 6,
-        panels: mkPanels(['right','both','left','right','both','left','right','both','left','right','both','left']), ratios: eqRatios(12), icon: <SlidingIcon panels={['right','both','left','right','both','left','right','both','left','right','both','left']} /> },
+    {
+        id: 'sliding-6t-12p-meet-a', name: '12P \u2192\u2190 \u00d76', category: '6t-12p-meeting', type: 'sliding', requiresConfig: true, tracks: 6,
+        panels: mkPanels(['right', 'left', 'right', 'left', 'right', 'left', 'right', 'left', 'right', 'left', 'right', 'left']), ratios: eqRatios(12), icon: <SlidingIcon panels={['right', 'left', 'right', 'left', 'right', 'left', 'right', 'left', 'right', 'left', 'right', 'left']} />
+    },
+    {
+        id: 'sliding-6t-12p-meet-b', name: '12P \u2194\u2192\u2190 mix', category: '6t-12p-meeting', type: 'sliding', requiresConfig: true, tracks: 6,
+        panels: mkPanels(['right', 'both', 'left', 'right', 'both', 'left', 'right', 'both', 'left', 'right', 'both', 'left']), ratios: eqRatios(12), icon: <SlidingIcon panels={['right', 'both', 'left', 'right', 'both', 'left', 'right', 'both', 'left', 'right', 'both', 'left']} />
+    },
 
     // ===== 7 Track 7 Panel =====
-    { id: 'sliding-7t-7p-a', name: '7P \u2192\u2192\u2192+\u2190\u2190\u2190', category: '7t-7p', type: 'sliding', requiresConfig: true, tracks: 7,
-        panels: mkPanels(['right','right','right','fixed','left','left','left']), ratios: eqRatios(7), icon: <SlidingIcon panels={['right','right','right','fixed','left','left','left']} /> },
-    { id: 'sliding-7t-7p-b', name: '7P \u2192\u2194\u2194\u2194\u2194\u2194\u2190', category: '7t-7p', type: 'sliding', requiresConfig: true, tracks: 7,
-        panels: mkPanels(['right','both','both','both','both','both','left']), ratios: eqRatios(7), icon: <SlidingIcon panels={['right','both','both','both','both','both','left']} /> },
-    { id: 'sliding-7t-7p-c', name: '7P \u2192\u2192\u2192\u2192\u2192\u2192\u2192', category: '7t-7p', type: 'sliding', requiresConfig: true, tracks: 7,
-        panels: mkPanels(['right','right','right','right','right','right','right']), ratios: eqRatios(7), icon: <SlidingIcon panels={['right','right','right','right','right','right','right']} /> },
+    {
+        id: 'sliding-7t-7p-a', name: '7P \u2192\u2192\u2192+\u2190\u2190\u2190', category: '7t-7p', type: 'sliding', requiresConfig: true, tracks: 7,
+        panels: mkPanels(['right', 'right', 'right', 'fixed', 'left', 'left', 'left']), ratios: eqRatios(7), icon: <SlidingIcon panels={['right', 'right', 'right', 'fixed', 'left', 'left', 'left']} />
+    },
+    {
+        id: 'sliding-7t-7p-b', name: '7P \u2192\u2194\u2194\u2194\u2194\u2194\u2190', category: '7t-7p', type: 'sliding', requiresConfig: true, tracks: 7,
+        panels: mkPanels(['right', 'both', 'both', 'both', 'both', 'both', 'left']), ratios: eqRatios(7), icon: <SlidingIcon panels={['right', 'both', 'both', 'both', 'both', 'both', 'left']} />
+    },
+    {
+        id: 'sliding-7t-7p-c', name: '7P \u2192\u2192\u2192\u2192\u2192\u2192\u2192', category: '7t-7p', type: 'sliding', requiresConfig: true, tracks: 7,
+        panels: mkPanels(['right', 'right', 'right', 'right', 'right', 'right', 'right']), ratios: eqRatios(7), icon: <SlidingIcon panels={['right', 'right', 'right', 'right', 'right', 'right', 'right']} />
+    },
 
     // ===== 8 Track 8 Panel =====
-    { id: 'sliding-8t-8p-a', name: '8P \u2192\u2192\u2192\u2192\u2190\u2190\u2190\u2190', category: '8t-8p', type: 'sliding', requiresConfig: true, tracks: 8,
-        panels: mkPanels(['right','right','right','right','left','left','left','left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right','right','right','right','left','left','left','left']} /> },
-    { id: 'sliding-8t-8p-b', name: '8P \u2192\u2194\u2194\u2194\u2194\u2194\u2194\u2190', category: '8t-8p', type: 'sliding', requiresConfig: true, tracks: 8,
-        panels: mkPanels(['right','both','both','both','both','both','both','left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right','both','both','both','both','both','both','left']} /> },
-    { id: 'sliding-8t-8p-c', name: '8P \u2192\u2192\u2192+\u2190\u2190\u2190+', category: '8t-8p', type: 'sliding', requiresConfig: true, tracks: 8,
-        panels: mkPanels(['right','right','right','fixed','left','left','left','fixed']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right','right','right','fixed','left','left','left','fixed']} /> },
+    {
+        id: 'sliding-8t-8p-a', name: '8P \u2192\u2192\u2192\u2192\u2190\u2190\u2190\u2190', category: '8t-8p', type: 'sliding', requiresConfig: true, tracks: 8,
+        panels: mkPanels(['right', 'right', 'right', 'right', 'left', 'left', 'left', 'left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right', 'right', 'right', 'right', 'left', 'left', 'left', 'left']} />
+    },
+    {
+        id: 'sliding-8t-8p-b', name: '8P \u2192\u2194\u2194\u2194\u2194\u2194\u2194\u2190', category: '8t-8p', type: 'sliding', requiresConfig: true, tracks: 8,
+        panels: mkPanels(['right', 'both', 'both', 'both', 'both', 'both', 'both', 'left']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right', 'both', 'both', 'both', 'both', 'both', 'both', 'left']} />
+    },
+    {
+        id: 'sliding-8t-8p-c', name: '8P \u2192\u2192\u2192+\u2190\u2190\u2190+', category: '8t-8p', type: 'sliding', requiresConfig: true, tracks: 8,
+        panels: mkPanels(['right', 'right', 'right', 'fixed', 'left', 'left', 'left', 'fixed']), ratios: eqRatios(8), icon: <SlidingIcon panels={['right', 'right', 'right', 'fixed', 'left', 'left', 'left', 'fixed']} />
+    },
 ];
 
 const Addon3DShell = ({ children }) => (
@@ -366,6 +426,138 @@ const Addon3DShell = ({ children }) => (
         {children}
     </svg>
 );
+
+// Line-art icon wrapper (EvA style: grey stroke, minimal)
+const LineArtIcon = ({ children, size = 48 }) => (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="#475569" strokeWidth="1.2">
+        {children}
+    </svg>
+);
+
+// Add-on Mesh Sash (bifold / folding mesh) – EvA "Add-on Mesh Sash" section
+const meshSashItems = [
+    {
+        id: 'addon-mesh-sash',
+        name: 'Bifold Mesh Sash',
+        type: 'addon',
+        addonType: 'mesh',
+        meshVariant: 'sash',
+        icon: (
+            <LineArtIcon>
+                <rect x="8" y="10" width="14" height="28" rx="1" />
+                <rect x="26" y="10" width="14" height="28" rx="1" />
+                <path d="M22 14v20 M26 14v20" strokeDasharray="2 2" />
+                {[12, 20, 28, 36].map((y) => (
+                    <line key={y} x1="10" y1={y} x2="20" y2={y} strokeWidth="0.8" />
+                ))}
+                {[12, 20, 28, 36].map((y) => (
+                    <line key={y} x1="28" y1={y} x2="38" y2={y} strokeWidth="0.8" />
+                ))}
+            </LineArtIcon>
+        ),
+    },
+];
+
+// Pleated & Pull-down Mesh options – EvA "Pleated & Pull-down Mesh" section
+const pleatedMeshItems = [
+    {
+        id: 'mesh-pleated-standard',
+        name: 'Mesh Panel',
+        type: 'addon',
+        addonType: 'mesh',
+        meshVariant: 'pleated',
+        icon: (
+            <LineArtIcon>
+                <rect x="10" y="10" width="28" height="28" rx="1" />
+                {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                    <line key={i} x1={12 + i * 4} y1="12" x2={12 + i * 4} y2="36" strokeWidth="0.7" />
+                ))}
+            </LineArtIcon>
+        ),
+    },
+    {
+        id: 'mesh-pleated-add',
+        name: 'Add Mesh',
+        type: 'addon',
+        addonType: 'mesh',
+        meshVariant: 'add',
+        icon: (
+            <LineArtIcon>
+                <rect x="10" y="10" width="28" height="28" rx="1" />
+                <line x1="24" y1="16" x2="24" y2="32" strokeWidth="1.5" />
+                <line x1="20" y1="24" x2="28" y2="24" strokeWidth="1.5" />
+            </LineArtIcon>
+        ),
+    },
+    {
+        id: 'mesh-slide-left',
+        name: 'Mesh Left',
+        type: 'addon',
+        addonType: 'mesh',
+        meshVariant: 'slide-left',
+        icon: (
+            <LineArtIcon>
+                <rect x="10" y="10" width="28" height="28" rx="1" />
+                <line x1="24" y1="10" x2="24" y2="38" />
+                {[14, 22, 30].map((y) => (
+                    <line key={y} x1="12" y1={y} x2="22" y2={y} strokeWidth="0.7" />
+                ))}
+            </LineArtIcon>
+        ),
+    },
+    {
+        id: 'mesh-slide-right',
+        name: 'Mesh Right',
+        type: 'addon',
+        addonType: 'mesh',
+        meshVariant: 'slide-right',
+        icon: (
+            <LineArtIcon>
+                <rect x="10" y="10" width="28" height="28" rx="1" />
+                <line x1="24" y1="10" x2="24" y2="38" />
+                {[14, 22, 30].map((y) => (
+                    <line key={y} x1="26" y1={y} x2="36" y2={y} strokeWidth="0.7" />
+                ))}
+            </LineArtIcon>
+        ),
+    },
+    {
+        id: 'mesh-slide-both',
+        name: 'Mesh Both',
+        type: 'addon',
+        addonType: 'mesh',
+        meshVariant: 'slide-both',
+        icon: (
+            <LineArtIcon>
+                <rect x="10" y="10" width="28" height="28" rx="1" />
+                <line x1="18" y1="10" x2="18" y2="38" />
+                <line x1="30" y1="10" x2="30" y2="38" />
+                {[14, 22, 30].map((y) => (
+                    <line key={y} x1="12" y1={y} x2="16" y2={y} strokeWidth="0.7" />
+                ))}
+                {[14, 22, 30].map((y) => (
+                    <line key={y} x1="32" y1={y} x2="36" y2={y} strokeWidth="0.7" />
+                ))}
+            </LineArtIcon>
+        ),
+    },
+    {
+        id: 'mesh-pulldown',
+        name: 'Pull-down Mesh',
+        type: 'addon',
+        addonType: 'mesh',
+        meshVariant: 'pulldown',
+        icon: (
+            <LineArtIcon>
+                <rect x="10" y="10" width="28" height="28" rx="1" />
+                <line x1="10" y1="22" x2="38" y2="22" strokeDasharray="3 2" />
+                {[14, 18].map((y) => (
+                    <line key={y} x1="14" y1={y} x2="34" y2={y} strokeWidth="0.7" />
+                ))}
+            </LineArtIcon>
+        ),
+    },
+];
 
 // Add-on items for the Design section (3D icon style)
 const addonItems = [
@@ -479,12 +671,11 @@ const sidebarItems = [
     },
     {
         id: 'design',
-        name: 'Design',
+        name: 'Design (Mesh & Add-ons)',
         icon: (
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <rect x="4" y="4" width="16" height="16" />
-                <line x1="4" y1="12" x2="20" y2="12" />
-                <line x1="12" y1="4" x2="12" y2="20" />
+                <line x1="4" y1="20" x2="20" y2="4" />
             </svg>
         ),
     },
@@ -591,11 +782,13 @@ export default function MullionPalette({
     onImageUpload,
 }) {
     const [isDragging, setIsDragging] = useState(false);
-    const [activeSection, setActiveSection] = useState('mullion');
+    const [activeSection, setActiveSection] = useState('design');
     const [isExpanded, setIsExpanded] = useState(false);
     const [colorSearch, setColorSearch] = useState('');
     const [selectedColorDraftId, setSelectedColorDraftId] = useState(null);
     const [uploadedImage, setUploadedImage] = useState(null);
+    const [customInsideColor, setCustomInsideColor] = useState('#3b82f6');
+    const [customOutsideColor, setCustomOutsideColor] = useState('#1e293b');
 
     const filteredColorOptions = useMemo(() => {
         const query = colorSearch.trim().toLowerCase();
@@ -672,6 +865,16 @@ export default function MullionPalette({
     };
 
     const handleColorConfirm = () => {
+        if (selectedColorId === 'custom') {
+            const customOption = {
+                id: 'custom',
+                inside: { name: 'CUSTOM', color: customInsideColor },
+                outside: { name: 'CUSTOM', color: customOutsideColor },
+            };
+            onFrameFinishConfirm?.(customOption, currentViewMode);
+            setSelectedColorDraftId(null);
+            return;
+        }
         if (!selectedColorOption) return;
         onFrameFinishConfirm?.(selectedColorOption, currentViewMode);
         setSelectedColorDraftId(null);
@@ -694,22 +897,24 @@ export default function MullionPalette({
     return (
         <div style={{
             position: 'absolute',
-            left: '12px',
+            left: '16px',
             top: '50%',
             transform: 'translateY(-50%)',
             display: 'flex',
             gap: '0',
             zIndex: 100,
+            maxHeight: 'calc(100vh - 80px)',
+            overflowY: 'auto',
         }}>
-            {/* Sidebar Icons */}
+            {/* Left nav strip – EvA-style dark bar with icon categories */}
             <div style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '4px',
-                backgroundColor: 'white',
+                gap: '2px',
+                backgroundColor: '#475569',
                 padding: '8px 6px',
-                borderRadius: '12px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                borderRadius: '10px',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
             }}>
                 {sidebarItems.map((item) => (
                     <div key={item.id} style={{ position: 'relative' }}>
@@ -730,8 +935,8 @@ export default function MullionPalette({
                                         : (activeSection === item.id && isExpanded ? '#2563eb' : 'transparent'),
                                 color:
                                     item.id === 'opening'
-                                        ? (isOpeningModeActive ? 'white' : '#64748b')
-                                        : (activeSection === item.id && isExpanded ? 'white' : '#64748b'),
+                                        ? (isOpeningModeActive ? 'white' : '#cbd5e1')
+                                        : (activeSection === item.id && isExpanded ? 'white' : '#cbd5e1'),
                                 fontSize: '20px',
                                 transition: 'all 0.2s ease',
                             }}
@@ -740,7 +945,7 @@ export default function MullionPalette({
                                     (item.id === 'opening' && !isOpeningModeActive) ||
                                     (item.id !== 'opening' && (activeSection !== item.id || !isExpanded))
                                 ) {
-                                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)';
                                 }
                             }}
                             onMouseLeave={(e) => {
@@ -977,7 +1182,7 @@ export default function MullionPalette({
                 </div>
             )}
 
-            {/* Design Section */}
+            {/* Design Section – EvA-style: Add-on Mesh Sash, Pleated & Pull-down Mesh, Sliding, Add-ons */}
             {isExpanded && activeSection === 'design' && (
                 <div style={{
                     marginLeft: '8px',
@@ -985,46 +1190,127 @@ export default function MullionPalette({
                     borderRadius: '12px',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
                     padding: '16px',
-                    minWidth: '280px',
+                    minWidth: '300px',
+                    maxWidth: '320px',
                     maxHeight: '80vh',
                     overflowY: 'auto',
                 }}>
-                    {/* Header */}
-                    <div style={{
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        color: '#1e293b',
-                        marginBottom: '16px',
-                    }}>
-                        Design
+                    {/* Add-on Mesh Sash */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <div style={{
+                            fontSize: '13px',
+                            fontWeight: '700',
+                            color: '#1e293b',
+                            marginBottom: '10px',
+                            letterSpacing: '0.02em',
+                        }}>
+                            Add-on Mesh Sash
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {meshSashItems.map((item) => (
+                                <div
+                                    key={item.id}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, item)}
+                                    onDragEnd={handleDragEnd}
+                                    title={item.name}
+                                    style={{
+                                        width: '64px',
+                                        padding: '8px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'grab',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#fafafa',
+                                        transition: 'all 0.2s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.borderColor = '#94a3b8';
+                                        e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.borderColor = '#e2e8f0';
+                                        e.currentTarget.style.backgroundColor = '#fafafa';
+                                    }}
+                                >
+                                    {item.icon}
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* Render each category with badge + grid */}
+                    {/* Pleated & Pull-down Mesh */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <div style={{
+                            fontSize: '13px',
+                            fontWeight: '700',
+                            color: '#1e293b',
+                            marginBottom: '10px',
+                            letterSpacing: '0.02em',
+                        }}>
+                            Pleated & Pull-down Mesh
+                        </div>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(2, 1fr)',
+                            gap: '8px',
+                        }}>
+                            {pleatedMeshItems.map((item) => (
+                                <div
+                                    key={item.id}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, item)}
+                                    onDragEnd={handleDragEnd}
+                                    title={item.name}
+                                    style={{
+                                        padding: '8px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'grab',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#fafafa',
+                                        transition: 'all 0.2s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.borderColor = '#94a3b8';
+                                        e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.borderColor = '#e2e8f0';
+                                        e.currentTarget.style.backgroundColor = '#fafafa';
+                                    }}
+                                >
+                                    {item.icon}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Sliding */}
                     {slidingCategories.map((cat) => {
                         const catPatterns = slidingPatterns.filter(p => p.category === cat.id);
                         if (catPatterns.length === 0) return null;
                         return (
                             <div key={cat.id} style={{ marginBottom: '20px' }}>
-                                {/* Category Badge */}
-                                <div style={{ marginBottom: '10px' }}>
-                                    <span style={{
-                                        display: 'inline-block',
-                                        padding: '4px 12px',
-                                        backgroundColor: '#2563eb',
-                                        color: 'white',
-                                        borderRadius: '6px',
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                    }}>
-                                        {cat.label}
-                                    </span>
+                                <div style={{
+                                    fontSize: '13px',
+                                    fontWeight: '700',
+                                    color: '#1e293b',
+                                    marginBottom: '10px',
+                                    letterSpacing: '0.02em',
+                                }}>
+                                    {cat.label}
                                 </div>
-
-                                {/* Pattern Grid */}
                                 <div style={{
                                     display: 'grid',
                                     gridTemplateColumns: 'repeat(2, 1fr)',
-                                    gap: '10px',
+                                    gap: '8px',
                                 }}>
                                     {catPatterns.map((pattern) => (
                                         <div
@@ -1042,21 +1328,17 @@ export default function MullionPalette({
                                                 cursor: 'grab',
                                                 border: '1px solid #e2e8f0',
                                                 borderRadius: '8px',
-                                                backgroundColor: 'white',
+                                                backgroundColor: '#fafafa',
                                                 transition: 'all 0.2s ease',
-                                                gap: '6px',
+                                                gap: '4px',
                                             }}
                                             onMouseEnter={(e) => {
-                                                e.currentTarget.style.borderColor = '#3b82f6';
-                                                e.currentTarget.style.backgroundColor = '#eff6ff';
-                                                e.currentTarget.style.transform = 'scale(1.03)';
-                                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.2)';
+                                                e.currentTarget.style.borderColor = '#94a3b8';
+                                                e.currentTarget.style.backgroundColor = '#f1f5f9';
                                             }}
                                             onMouseLeave={(e) => {
                                                 e.currentTarget.style.borderColor = '#e2e8f0';
-                                                e.currentTarget.style.backgroundColor = 'white';
-                                                e.currentTarget.style.transform = 'scale(1)';
-                                                e.currentTarget.style.boxShadow = 'none';
+                                                e.currentTarget.style.backgroundColor = '#fafafa';
                                             }}
                                         >
                                             {pattern.icon}
@@ -1068,15 +1350,16 @@ export default function MullionPalette({
                         );
                     })}
 
-                    {/* Add-ons Section */}
-                    <div style={{ marginBottom: '16px', marginTop: '8px' }}>
+                    {/* Add-ons */}
+                    <div style={{ marginBottom: '8px' }}>
                         <div style={{
-                            fontSize: '15px',
-                            fontWeight: '600',
+                            fontSize: '13px',
+                            fontWeight: '700',
                             color: '#1e293b',
-                            marginBottom: '12px',
-                            paddingTop: '12px',
+                            marginBottom: '10px',
+                            paddingTop: '4px',
                             borderTop: '1px solid #e2e8f0',
+                            letterSpacing: '0.02em',
                         }}>
                             Add-ons
                         </div>
@@ -1101,21 +1384,16 @@ export default function MullionPalette({
                                         cursor: 'grab',
                                         border: '1px solid #e2e8f0',
                                         borderRadius: '8px',
-                                        backgroundColor: 'white',
+                                        backgroundColor: '#fafafa',
                                         transition: 'all 0.2s ease',
-                                        gap: '4px',
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.borderColor = '#3b82f6';
-                                        e.currentTarget.style.backgroundColor = '#eff6ff';
-                                        e.currentTarget.style.transform = 'scale(1.05)';
-                                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.2)';
+                                        e.currentTarget.style.borderColor = '#94a3b8';
+                                        e.currentTarget.style.backgroundColor = '#f1f5f9';
                                     }}
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.borderColor = '#e2e8f0';
-                                        e.currentTarget.style.backgroundColor = 'white';
-                                        e.currentTarget.style.transform = 'scale(1)';
-                                        e.currentTarget.style.boxShadow = 'none';
+                                        e.currentTarget.style.backgroundColor = '#fafafa';
                                     }}
                                 >
                                     {addon.icon}
@@ -1151,6 +1429,7 @@ export default function MullionPalette({
                     flexDirection: 'column',
                     overflow: 'hidden',
                 }}>
+                    {/* Header */}
                     <div style={{
                         padding: '16px',
                         borderBottom: '1px solid #e2e8f0',
@@ -1161,6 +1440,7 @@ export default function MullionPalette({
                         Select Color
                     </div>
 
+                    {/* Search + context */}
                     <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
                         <input
                             value={colorSearch}
@@ -1187,6 +1467,7 @@ export default function MullionPalette({
                         </div>
                     </div>
 
+                    {/* Colour grid */}
                     <div style={{
                         padding: '12px 10px',
                         overflowY: 'auto',
@@ -1196,6 +1477,7 @@ export default function MullionPalette({
                         alignContent: 'start',
                         flex: 1,
                     }}>
+                        {/* Preset swatches */}
                         {filteredColorOptions.map((option) => {
                             const isSelected = selectedColorId === option.id;
                             return (
@@ -1210,6 +1492,7 @@ export default function MullionPalette({
                                         cursor: 'pointer',
                                         textAlign: 'center',
                                         padding: '8px',
+                                        transition: 'border-color 0.15s',
                                     }}
                                 >
                                     <div style={{
@@ -1228,6 +1511,8 @@ export default function MullionPalette({
                                 </button>
                             );
                         })}
+
+                        {/* Empty state */}
                         {filteredColorOptions.length === 0 && (
                             <div style={{
                                 gridColumn: '1 / -1',
@@ -1239,8 +1524,150 @@ export default function MullionPalette({
                                 No colors match your search.
                             </div>
                         )}
+
+                        {/* ── Custom Colour Card ── */}
+                        {!colorSearch && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedColorDraftId('custom')}
+                                style={{
+                                    border: selectedColorId === 'custom' ? '2px solid #3b82f6' : '1px dashed #94a3b8',
+                                    borderRadius: '8px',
+                                    background: selectedColorId === 'custom' ? '#f0f7ff' : '#fafafa',
+                                    cursor: 'pointer',
+                                    textAlign: 'center',
+                                    padding: '8px',
+                                    transition: 'all 0.15s',
+                                }}
+                            >
+                                {/* Diagonal split preview */}
+                                <div style={{
+                                    width: '100%',
+                                    height: '128px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e2e8f0',
+                                    background: `linear-gradient(135deg, ${customInsideColor} 0 49%, #ffffff 49% 51%, ${customOutsideColor} 51% 100%)`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                }}>
+                                    <span style={{
+                                        position: 'absolute',
+                                        inset: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '11px',
+                                        fontWeight: '700',
+                                        color: 'rgba(255,255,255,0.9)',
+                                        textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                                        letterSpacing: '0.5px',
+                                        pointerEvents: 'none',
+                                    }}>CUSTOM</span>
+                                </div>
+                                <div style={{ marginTop: '8px', fontSize: '11px', color: '#475569', fontWeight: '600' }}>
+                                    Custom Colour
+                                </div>
+                                <div style={{ marginTop: '2px', fontSize: '11px', color: '#64748b' }}>
+                                    Pick any shade
+                                </div>
+                            </button>
+                        )}
                     </div>
 
+                    {/* Custom pickers — shown when custom is selected */}
+                    {selectedColorId === 'custom' && (
+                        <div style={{
+                            padding: '14px 16px',
+                            borderTop: '1px solid #e2e8f0',
+                            background: '#f8fafc',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                        }}>
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                                Custom Colours
+                            </div>
+
+                            {/* Inside picker */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <label style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '10px 12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #dbe3ee',
+                                    background: 'white',
+                                    cursor: 'pointer',
+                                }}>
+                                    <div style={{
+                                        width: '28px',
+                                        height: '28px',
+                                        borderRadius: '50%',
+                                        background: customInsideColor,
+                                        border: '2px solid #e2e8f0',
+                                        flexShrink: 0,
+                                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                                    }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Inside</div>
+                                        <div style={{ fontSize: '12px', color: '#1e293b', fontWeight: '600', fontFamily: 'monospace' }}>
+                                            {customInsideColor.toUpperCase()}
+                                        </div>
+                                    </div>
+                                    <input
+                                        type="color"
+                                        value={customInsideColor}
+                                        onChange={(e) => setCustomInsideColor(e.target.value)}
+                                        style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+                                    />
+                                </label>
+                            </div>
+
+                            {/* Outside picker */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <label style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '10px 12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #dbe3ee',
+                                    background: 'white',
+                                    cursor: 'pointer',
+                                }}>
+                                    <div style={{
+                                        width: '28px',
+                                        height: '28px',
+                                        borderRadius: '50%',
+                                        background: customOutsideColor,
+                                        border: '2px solid #e2e8f0',
+                                        flexShrink: 0,
+                                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                                    }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Outside</div>
+                                        <div style={{ fontSize: '12px', color: '#1e293b', fontWeight: '600', fontFamily: 'monospace' }}>
+                                            {customOutsideColor.toUpperCase()}
+                                        </div>
+                                    </div>
+                                    <input
+                                        type="color"
+                                        value={customOutsideColor}
+                                        onChange={(e) => setCustomOutsideColor(e.target.value)}
+                                        style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Confirm */}
                     <div style={{ padding: '12px', borderTop: '1px solid #e2e8f0' }}>
                         <button
                             type="button"
@@ -1250,11 +1677,13 @@ export default function MullionPalette({
                                 height: '44px',
                                 border: 'none',
                                 borderRadius: '6px',
-                                background: '#1d6cc0',
+                                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
                                 color: 'white',
-                                fontSize: '17px',
+                                fontSize: '15px',
                                 fontWeight: '600',
                                 cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
+                                transition: 'all 0.2s',
                             }}
                         >
                             Confirm

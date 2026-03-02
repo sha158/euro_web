@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, useImperativeHandle, forwardRef } from 'react';
 import { Stage, Layer, Group, Rect, Line, Circle, Text, Image as KonvaImage } from 'react-konva';
 import dynamic from 'next/dynamic';
 import WindowNode from './konva/nodes/WindowNode';
@@ -32,7 +32,9 @@ const OPENING_SCALE = 0.12;
 const OPENING_PADDING = 120;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
-export default function WindowCanvasKonva({
+const GRID_STEP_PX = 24;
+
+function WindowCanvasKonvaInner({
     width,
     height,
     windowStructure,
@@ -57,7 +59,11 @@ export default function WindowCanvasKonva({
     frameFinishBySide,
     backgroundImageSrc,
     openingPolygon,
-}) {
+    onSplitRatioChange,
+    showGrid = false,
+    showRuler = false,
+    floorApertureDistance = 900,
+}, ref) {
     const [dragOverPanelId, setDragOverPanelId] = useState(null);
     const [is3DMode, setIs3DMode] = useState(false);
     const [localViewMode, setLocalViewMode] = useState('inside');
@@ -154,6 +160,79 @@ export default function WindowCanvasKonva({
     // Center the content
     const stageOffsetX = -(stageSize.width / fitScale - totalContentW) / 2;
     const stageOffsetY = -(stageSize.height / fitScale - totalContentH) / 2;
+
+    // User zoom and pan (Canvas UX)
+    const [stageView, setStageView] = useState({ zoom: 1, panX: 0, panY: 0 });
+    const [isPanning, setIsPanning] = useState(false);
+    const panStartRef = useRef({ x: 0, y: 0 });
+    const MIN_ZOOM = 0.25;
+    const MAX_ZOOM = 10;
+
+    const effectiveScale = fitScale * stageView.zoom;
+    const effectiveOffsetX = stageOffsetX + stageView.panX;
+    const effectiveOffsetY = stageOffsetY + stageView.panY;
+
+    // Zoom/pan by mouse disabled; use Zoom In / Zoom Out buttons only
+    const handleZoomIn = useCallback(() => {
+        setStageView((v) => ({
+            ...v,
+            zoom: Math.min(MAX_ZOOM / fitScale, v.zoom * 1.25),
+            panX: 0,
+            panY: 0,
+        }));
+    }, [fitScale]);
+    const handleZoomOut = useCallback(() => {
+        setStageView((v) => ({
+            ...v,
+            zoom: Math.max(MIN_ZOOM / fitScale, v.zoom / 1.25),
+            panX: 0,
+            panY: 0,
+        }));
+    }, [fitScale]);
+
+    const getPointerPos = (e) => {
+        const ev = e.evt;
+        if (ev.touches && ev.touches.length > 0) {
+            return { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
+        }
+        return { x: ev.clientX, y: ev.clientY };
+    };
+
+    // Drag-to-pan disabled (no-op handlers so Stage still has listeners)
+    const handleStagePointerDown = useCallback(() => {}, []);
+    const handleStagePointerMove = useCallback(() => {}, []);
+
+    const handleStagePointerUp = useCallback(() => {
+        setIsPanning(false);
+    }, []);
+
+    const handleStagePointerLeave = useCallback(() => {
+        setIsPanning(false);
+    }, []);
+
+    const resetZoomPan = useCallback(() => {
+        setStageView({ zoom: 1, panX: 0, panY: 0 });
+    }, []);
+
+    const exportImage = useCallback((options = {}) => {
+        const stage = stageRef.current;
+        if (!stage) return null;
+        try {
+            return stage.toDataURL({
+                pixelRatio: options.pixelRatio ?? 2,
+                mimeType: options.mimeType ?? 'image/png',
+                ...options,
+            });
+        } catch (err) {
+            console.error('Export image failed:', err);
+            return null;
+        }
+    }, []);
+
+    useImperativeHandle(ref, () => ({
+        resetZoomPan,
+        exportImage,
+    }), [resetZoomPan, exportImage]);
 
     // Panel bounds for hit testing
     const panelBounds = useMemo(() => {
@@ -670,15 +749,79 @@ export default function WindowCanvasKonva({
                     ref={stageRef}
                     width={stageSize.width}
                     height={stageSize.height}
-                    scaleX={fitScale}
-                    scaleY={fitScale}
-                    offsetX={stageOffsetX}
-                    offsetY={stageOffsetY}
-                    style={{ cursor: 'pointer' }}
+                    scaleX={effectiveScale}
+                    scaleY={effectiveScale}
+                    offsetX={effectiveOffsetX}
+                    offsetY={effectiveOffsetY}
+                    style={{ cursor: isPanning ? 'grabbing' : 'pointer' }}
                     listening={true}
+                    onWheel={(e) => e.evt.preventDefault()}
+                    onMouseDown={handleStagePointerDown}
+                    onMouseMove={handleStagePointerMove}
+                    onMouseUp={handleStagePointerUp}
+                    onMouseLeave={handleStagePointerLeave}
+                    onTouchStart={handleStagePointerDown}
+                    onTouchMove={handleStagePointerMove}
+                    onTouchEnd={handleStagePointerUp}
                 >
                     <Layer>
                         <Group x={padding} y={padding}>
+                            {/* Optional grid */}
+                            {showGrid && (
+                                <Group listening={false}>
+                                    {Array.from({ length: Math.ceil(displayWidth / GRID_STEP_PX) + 1 }, (_, i) => {
+                                        const x = i * GRID_STEP_PX;
+                                        if (x > displayWidth) return null;
+                                        return (
+                                            <Line
+                                                key={`gv-${i}`}
+                                                points={[x, 0, x, displayHeight]}
+                                                stroke="#e2e8f0"
+                                                strokeWidth={0.5}
+                                                listening={false}
+                                            />
+                                        );
+                                    })}
+                                    {Array.from({ length: Math.ceil(displayHeight / GRID_STEP_PX) + 1 }, (_, i) => {
+                                        const y = i * GRID_STEP_PX;
+                                        if (y > displayHeight) return null;
+                                        return (
+                                            <Line
+                                                key={`gh-${i}`}
+                                                points={[0, y, displayWidth, y]}
+                                                stroke="#e2e8f0"
+                                                strokeWidth={0.5}
+                                                listening={false}
+                                            />
+                                        );
+                                    })}
+                                </Group>
+                            )}
+                            {/* Optional ruler (left and bottom edges) */}
+                            {showRuler && (
+                                <Group listening={false}>
+                                    {Array.from({ length: Math.ceil(displayHeight / GRID_STEP_PX) + 1 }, (_, i) => {
+                                        const y = i * GRID_STEP_PX;
+                                        if (y > displayHeight) return null;
+                                        return (
+                                            <Group key={`ruler-l-${i}`}>
+                                                <Line points={[-8, y, 0, y]} stroke="#94a3b8" strokeWidth={1} />
+                                                <Text x={-28} y={y - 5} text={String(i * GRID_STEP_PX)} fontSize={9} fill="#64748b" listening={false} />
+                                            </Group>
+                                        );
+                                    })}
+                                    {Array.from({ length: Math.ceil(displayWidth / GRID_STEP_PX) + 1 }, (_, i) => {
+                                        const x = i * GRID_STEP_PX;
+                                        if (x > displayWidth) return null;
+                                        return (
+                                            <Group key={`ruler-b-${i}`}>
+                                                <Line points={[x, displayHeight, x, displayHeight + 8]} stroke="#94a3b8" strokeWidth={1} />
+                                                <Text x={x - 6} y={displayHeight + 10} text={String(i * GRID_STEP_PX)} fontSize={9} fill="#64748b" listening={false} />
+                                            </Group>
+                                        );
+                                    })}
+                                </Group>
+                            )}
                             {/* Clipping group for custom opening polygon */}
                             <Group
                                 clipFunc={openingPolygon && openingPolygon.length >= 3 ? (ctx) => {
@@ -707,6 +850,7 @@ export default function WindowCanvasKonva({
                                 path={[]}
                                 isOutside={isOutside}
                                 frameColor={activeFrameColor}
+                                onSplitRatioChange={onSplitRatioChange}
                             />
                             </Group>
                             </Group>
@@ -770,6 +914,7 @@ export default function WindowCanvasKonva({
                                 displayWidth={displayWidth}
                                 displayHeight={displayHeight}
                                 isOutside={isOutside}
+                                floorApertureDistance={floorApertureDistance}
                             />
 
                             {/* Individual panel dimensions */}
@@ -1056,7 +1201,7 @@ export default function WindowCanvasKonva({
             {/* Inside/Outside View Toggle */}
             {!is3DMode && (
                 <div style={{
-                    position: 'absolute', bottom: '45px', left: '20px',
+                    position: 'absolute', bottom: '45px', left: '80px',
                     background: '#e2e8f0', padding: '3px', borderRadius: '20px',
                     display: 'flex', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', zIndex: 30,
                 }}>
@@ -1123,6 +1268,51 @@ export default function WindowCanvasKonva({
                         <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"></path>
                     </svg>
                 </button>
+                {/* Zoom out */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
+                    title="Zoom out"
+                    style={{
+                        width: '32px', height: '32px', border: '1px solid #e2e8f0', borderRadius: '4px',
+                        background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        <line x1="8" y1="11" x2="14" y2="11" />
+                    </svg>
+                </button>
+                {/* Zoom in */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
+                    title="Zoom in"
+                    style={{
+                        width: '32px', height: '32px', border: '1px solid #e2e8f0', borderRadius: '4px',
+                        background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        <line x1="11" y1="8" x2="11" y2="14" />
+                        <line x1="8" y1="11" x2="14" y2="11" />
+                    </svg>
+                </button>
+                {/* Reset zoom */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); resetZoomPan(); }}
+                    title="Reset view (fit to window)"
+                    style={{
+                        width: '32px', height: '32px', border: '1px solid #e2e8f0', borderRadius: '4px',
+                        background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                    </svg>
+                </button>
                 {/* 3D Toggle */}
                 <button
                     onClick={() => {
@@ -1171,6 +1361,30 @@ export default function WindowCanvasKonva({
                         <line x1="14" y1="11" x2="14" y2="17"></line>
                     </svg>
                 </button>
+                {/* Export PNG */}
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        const dataURL = exportImage();
+                        if (dataURL) {
+                            const a = document.createElement('a');
+                            a.href = dataURL;
+                            a.download = `design-${Date.now()}.png`;
+                            a.click();
+                        }
+                    }}
+                    title="Export as PNG"
+                    style={{
+                        width: '32px', height: '32px', border: '1px solid #e2e8f0', borderRadius: '4px',
+                        background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                </button>
             </div>
 
             <style jsx>{`
@@ -1182,3 +1396,6 @@ export default function WindowCanvasKonva({
         </div>
     );
 }
+
+const WindowCanvasKonva = forwardRef(WindowCanvasKonvaInner);
+export default WindowCanvasKonva;

@@ -5,10 +5,14 @@ import CenteredText from '../shared/CenteredText';
 import { FRAME_COLOR } from '../shared/constants';
 import { getFramePalette } from '../shared/framePalette';
 
-export default function SplitHorizontal({ node, x, y, width, height, scale, selectedPanelId, dragOverPanelId, path, isOutside, frameColor = FRAME_COLOR }) {
+const MIN_PANEL_RATIO = 0.08;
+
+export default function SplitHorizontal({ node, x, y, width, height, scale, selectedPanelId, dragOverPanelId, path, isOutside, frameColor = FRAME_COLOR, onSplitRatioChange }) {
     const childHeights = node.ratios.map(r => height * r);
     const isCoupler = node.mullionType === 'coupler-horizontal';
     const palette = getFramePalette(frameColor);
+    const canDragMullion = onSplitRatioChange && node.children && node.children.length === 2 && !isCoupler;
+    const mullionDragY = (y + childHeights[0]) * scale;
 
     return (
         <Group>
@@ -19,7 +23,8 @@ export default function SplitHorizontal({ node, x, y, width, height, scale, sele
                     <WindowNode key={i} node={child} x={x} y={childY}
                         width={width} height={childHeights[i]} scale={scale}
                         selectedPanelId={selectedPanelId} dragOverPanelId={dragOverPanelId}
-                        path={[...path, i]} isOutside={isOutside} frameColor={frameColor} />
+                        path={[...path, i]} isOutside={isOutside} frameColor={frameColor}
+                        onSplitRatioChange={onSplitRatioChange} />
                 );
             })}
 
@@ -136,6 +141,30 @@ export default function SplitHorizontal({ node, x, y, width, height, scale, sele
                         );
                     });
                 })()
+            )}
+
+            {/* Draggable mullion handle (2-panel split only) */}
+            {canDragMullion && (
+                <Rect
+                    x={x * scale}
+                    y={mullionDragY - 6}
+                    width={width * scale}
+                    height={12}
+                    fill="transparent"
+                    listening={true}
+                    draggable
+                    dragBoundFunc={(pos) => {
+                        const minY = (y + height * MIN_PANEL_RATIO) * scale - 6;
+                        const maxY = (y + height * (1 - MIN_PANEL_RATIO)) * scale - 6;
+                        return { x: x * scale, y: Math.max(minY, Math.min(maxY, pos.y)) };
+                    }}
+                    onDragEnd={(e) => {
+                        const centerY = e.target.y() + 6;
+                        const topRatio = (centerY / scale - y) / height;
+                        const r = Math.max(MIN_PANEL_RATIO, Math.min(1 - MIN_PANEL_RATIO, topRatio));
+                        onSplitRatioChange(path, [r, 1 - r]);
+                    }}
+                />
             )}
         </Group>
     );

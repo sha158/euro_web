@@ -10,14 +10,15 @@ import MullionModal from '../../../components/MullionModal';
 import MultipleMullionModal from '../../../components/MultipleMullionModal';
 import MullionPalette, { frameColorOptions } from '../../../components/MullionPalette';
 import SelectSystemModal from '../../../components/SelectSystemModal';
+import SelectCasementSystemModal from '../../../components/SelectCasementSystemModal';
 import FanSpecificationModal from '../../../components/FanSpecificationModal';
 import LouverTypeModal from '../../../components/LouverTypeModal';
+import { computeBOM } from '../../../components/konva/shared/bom';
+import { getDesigns, saveDesigns, getCatalogItems, addCatalogItem } from '../../../lib/firestoreService';
 
 // Dynamic import for 3D Viewer (Three.js doesn't support SSR)
 
 const ROOT_PANEL_ID = '1';
-const SAVED_DESIGNS_STORAGE_KEY = 'quoteDesignsByProject';
-const SAVED_CATALOG_STORAGE_KEY = 'designCatalog';
 const DEFAULT_FRAME_OPTION =
     frameColorOptions.find((option) => option.id === 'no-laminate') ?? frameColorOptions[0];
 const DEFAULT_CONFIG = {
@@ -30,6 +31,11 @@ const DEFAULT_CONFIG = {
     floor: '',
     note: '',
     glass: '5 MM BLACK GLASS',
+    floorApertureDistance: 900,
+    dimensionUnits: 'mm', // 'mm' | 'ft-in' | 'm'
+    revision: 1,
+    productCodeSystem: '',
+    productCodeGlass: '',
 };
 const GLASS_OPTIONS = [
     '5 MM PINHEAD GLASS',
@@ -86,6 +92,18 @@ const GLASS_OPTIONS = [
 
 const deepClone = (value) => JSON.parse(JSON.stringify(value));
 
+/** Format a length in mm for display (unit from config: mm | ft-in | m). */
+function formatDimension(mm, unit) {
+    if (unit === 'm') return `${(Number(mm) / 1000).toFixed(3)} m`;
+    if (unit === 'ft-in') {
+        const totalIn = Number(mm) / 25.4;
+        const feet = Math.floor(totalIn / 12);
+        const inches = Math.round(totalIn - feet * 12);
+        return inches === 0 ? `${feet}'` : `${feet}' ${inches}"`;
+    }
+    return `${Math.round(Number(mm))} mm`;
+}
+
 const createDefaultFrameFinish = () => ({
     inside: { ...DEFAULT_FRAME_OPTION.inside },
     outside: { ...DEFAULT_FRAME_OPTION.outside },
@@ -98,6 +116,19 @@ const createDefaultFrameFinish = () => ({
 const toPositiveNumber = (value, fallback) => {
     const num = Number(value);
     return Number.isFinite(num) && num > 0 ? num : fallback;
+};
+
+/** Parse design.size string e.g. "W = 3000.00; H = 3000.00" to { width, height } */
+const parseSizeFromDesign = (design) => {
+    const sizeText = design?.size;
+    if (!sizeText || typeof sizeText !== 'string') return null;
+    const wMatch = sizeText.match(/W\s*=\s*([\d.]+)/i);
+    const hMatch = sizeText.match(/H\s*=\s*([\d.]+)/i);
+    if (!wMatch || !hMatch) return null;
+    const width = Number(wMatch[1]);
+    const height = Number(hMatch[1]);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+    return { width, height };
 };
 
 const normalizeConfigForSave = (config) => {
@@ -121,6 +152,7 @@ const buildDesignRecord = ({
     windowStructure,
     frameFinishBySide,
     fallbackNameIndex = 1,
+    thumbnail,
 }) => {
     const normalizedInput = normalizeConfigForSave(config);
     const width = toPositiveNumber(normalizedInput.width, DEFAULT_CONFIG.width);
@@ -131,6 +163,7 @@ const buildDesignRecord = ({
     const now = new Date().toISOString();
     const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+    const revision = toPositiveNumber(normalizedInput.revision, 1);
     const normalizedConfig = {
         ...DEFAULT_CONFIG,
         ...normalizedInput,
@@ -139,6 +172,7 @@ const buildDesignRecord = ({
         qty,
         ref: normalizedInput.ref,
         name: displayName,
+        revision,
     };
 
     return {
@@ -146,7 +180,8 @@ const buildDesignRecord = ({
         designRef: normalizedConfig.ref || displayName,
         name: displayName,
         qty,
-        image: '/window.svg',
+        revision,
+        image: thumbnail && typeof thumbnail === 'string' ? thumbnail : '/window.svg',
         location: normalizedConfig.location || '--',
         series: 'Custom Configurator',
         glass: normalizedConfig.glass || '--',
@@ -203,7 +238,7 @@ export default function DesignConfiguratorPage({ params }) {
     const quoteKey = id.toLowerCase();
 
     // State for sidebar visibility and edit mode
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isMullionModalOpen, setIsMullionModalOpen] = useState(false);
     const [isMultipleMullionModalOpen, setIsMultipleMullionModalOpen] = useState(false);
     const [selectedPanelId, setSelectedPanelId] = useState(null);
@@ -220,18 +255,43 @@ export default function DesignConfiguratorPage({ params }) {
     const [backgroundImageSrc, setBackgroundImageSrc] = useState(null);
     const [isOpeningConfirmOpen, setIsOpeningConfirmOpen] = useState(false);
     const [openingModeSession, setOpeningModeSession] = useState(0);
+    const [isOpeningSystemModalOpen, setIsOpeningSystemModalOpen] = useState(false);
+    const [pendingOpeningPoints, setPendingOpeningPoints] = useState(null);
     const [saveStatus, setSaveStatus] = useState(null);
+    const [snackbarVisible, setSnackbarVisible] = useState(false);
+    const snackbarTimerRef = useRef(null);
+
+    // Auto-dismiss snackbar after 3.5 s
+    useEffect(() => {
+        if (!saveStatus) { setSnackbarVisible(false); return; }
+        setSnackbarVisible(true);
+        if (snackbarTimerRef.current) clearTimeout(snackbarTimerRef.current);
+        snackbarTimerRef.current = setTimeout(() => {
+            setSnackbarVisible(false);
+            setTimeout(() => setSaveStatus(null), 400); // wait for exit animation
+        }, 3500);
+        return () => clearTimeout(snackbarTimerRef.current);
+    }, [saveStatus]);
     const [formErrors, setFormErrors] = useState({});
     const [isGlassDropdownOpen, setIsGlassDropdownOpen] = useState(false);
     const [glassSearch, setGlassSearch] = useState('');
     const [activeDesignId, setActiveDesignId] = useState(null);
     const [viewMode, setViewMode] = useState('inside');
     const [frameFinishBySide, setFrameFinishBySide] = useState(() => createDefaultFrameFinish());
+    const [collapseConfirmPath, setCollapseConfirmPath] = useState(null);
+    const [isFullScreenCanvas, setIsFullScreenCanvas] = useState(false);
+    const [showGrid, setShowGrid] = useState(false);
+    const [showRuler, setShowRuler] = useState(false);
+    const [showBOMSection, setShowBOMSection] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [saveDropdownOpen, setSaveDropdownOpen] = useState(false);
+    const [saveToDialogOpen, setSaveToDialogOpen] = useState(false);
 
     // Use ref for panel ID counter to persist across renders
     const panelIdCounter = useRef(2);
     const hydratedQueryRef = useRef('');
     const glassDropdownRef = useRef(null);
+    const canvasRef = useRef(null);
 
     // State for window structure (recursive tree)
     const [windowStructure, setWindowStructure] = useState({
@@ -442,6 +502,14 @@ export default function DesignConfiguratorPage({ params }) {
 
     const handleOpeningSave = useCallback((points) => {
         if (!points || points.length < 3) return;
+        // Store points and show system selection modal before applying
+        setPendingOpeningPoints(points);
+        setIsOpeningSystemModalOpen(true);
+    }, []);
+
+    const handleOpeningSystemConfirm = useCallback((systemConfig) => {
+        if (!pendingOpeningPoints || pendingOpeningPoints.length < 3) return;
+        const points = pendingOpeningPoints;
         // Calculate bounding box
         const xs = points.map(p => p.x);
         const ys = points.map(p => p.y);
@@ -461,9 +529,13 @@ export default function DesignConfiguratorPage({ params }) {
             width: bboxW,
             height: bboxH,
             openingPoints: normalizedPoints,
+            openingBrand: systemConfig.brand,
+            openingSystem: systemConfig.system,
         }));
+        setPendingOpeningPoints(null);
+        setIsOpeningSystemModalOpen(false);
         setIsOpeningMode(false);
-    }, []);
+    }, [pendingOpeningPoints]);
 
     // Keyboard shortcuts for undo/redo
     useEffect(() => {
@@ -505,64 +577,89 @@ export default function DesignConfiguratorPage({ params }) {
         if (hydratedQueryRef.current === querySignature) return;
         hydratedQueryRef.current = querySignature;
 
-        const templateId = searchParams.get('templateId');
-        const designId = searchParams.get('designId');
-        const presetWidth = toPositiveNumber(searchParams.get('presetW'), 0);
-        const presetHeight = toPositiveNumber(searchParams.get('presetH'), 0);
-        const presetName = searchParams.get('presetName');
+        (async () => {
+            const templateId = searchParams.get('templateId');
+            const designId = searchParams.get('designId');
+            const presetWidth = toPositiveNumber(searchParams.get('presetW'), 0);
+            const presetHeight = toPositiveNumber(searchParams.get('presetH'), 0);
+            const presetName = searchParams.get('presetName');
 
-        let queuedCanvasState = null;
-        let queuedPreset = null;
-        let statusMessage = '';
+            let queuedCanvasState = null;
+            let queuedPreset = null;
+            let statusMessage = '';
 
-        if (templateId) {
-            try {
-                const rawCatalog = localStorage.getItem(SAVED_CATALOG_STORAGE_KEY);
-                const catalogEntries = rawCatalog ? JSON.parse(rawCatalog) : [];
-                const selectedTemplate = Array.isArray(catalogEntries)
-                    ? catalogEntries.find((item) => item.id === templateId)
-                    : null;
+            if (templateId) {
+                try {
+                    const catalogEntries = await getCatalogItems();
+                    const selectedTemplate = Array.isArray(catalogEntries)
+                        ? catalogEntries.find((item) => item.id === templateId)
+                        : null;
 
-                if (selectedTemplate?.template) {
-                    queuedCanvasState = selectedTemplate.template;
-                    statusMessage = 'Catalog template loaded';
+                    if (selectedTemplate?.template) {
+                        queuedCanvasState = selectedTemplate.template;
+                        statusMessage = 'Catalog template loaded';
+                    }
+                } catch (error) {
+                    console.error('Failed to load catalog template', error);
                 }
-            } catch (error) {
-                console.error('Failed to load catalog template', error);
             }
-        }
 
-        if (!queuedCanvasState && designId) {
-            try {
-                const savedRaw = localStorage.getItem(SAVED_DESIGNS_STORAGE_KEY);
-                const savedMap = savedRaw ? JSON.parse(savedRaw) : {};
-                const existingDesigns = Array.isArray(savedMap?.[quoteKey]) ? savedMap[quoteKey] : [];
-                const selectedDesign = existingDesigns.find((item) => item.id === designId);
+            if (!queuedCanvasState && designId) {
+                try {
+                    const existingDesigns = await getDesigns(quoteKey);
+                    const selectedDesign = existingDesigns.find((item) => item.id === designId);
 
-                if (selectedDesign?.canvas) {
-                    queuedCanvasState = selectedDesign.canvas;
-                    statusMessage = 'Saved design loaded';
+                    if (selectedDesign?.canvas) {
+                        const rawCanvas = selectedDesign.canvas;
+                        const rawConfig = rawCanvas.config || {};
+                        let w = presetWidth > 0 && presetHeight > 0 ? presetWidth : toPositiveNumber(rawConfig.width, 0);
+                        let h = presetWidth > 0 && presetHeight > 0 ? presetHeight : toPositiveNumber(rawConfig.height, 0);
+                        if (w <= 0 || h <= 0) {
+                            const fromSize = parseSizeFromDesign(selectedDesign);
+                            if (fromSize) {
+                                w = fromSize.width;
+                                h = fromSize.height;
+                            } else {
+                                w = DEFAULT_CONFIG.width;
+                                h = DEFAULT_CONFIG.height;
+                            }
+                        }
+                        queuedCanvasState = {
+                            ...rawCanvas,
+                            config: {
+                                ...rawConfig,
+                                width: w,
+                                height: h,
+                                qty: toPositiveNumber(rawConfig.qty, DEFAULT_CONFIG.qty),
+                            },
+                        };
+                        statusMessage = 'Saved design loaded';
+                    }
+                } catch (error) {
+                    console.error('Failed to load saved design', error);
                 }
-            } catch (error) {
-                console.error('Failed to load saved design', error);
             }
-        }
 
-        if (!queuedCanvasState && presetWidth > 0 && presetHeight > 0) {
-            queuedPreset = {
-                width: presetWidth,
-                height: presetHeight,
-                name: presetName?.trim() || '',
-            };
-            statusMessage = 'Catalog preset applied';
-        }
+            if (!queuedCanvasState && presetWidth > 0 && presetHeight > 0) {
+                queuedPreset = {
+                    width: presetWidth,
+                    height: presetHeight,
+                    name: presetName?.trim() || '',
+                };
+                statusMessage = 'Catalog preset applied';
+            }
 
-        if (!queuedCanvasState && !queuedPreset) return;
+            if (!queuedCanvasState && !queuedPreset) return;
 
-        const frameId = window.requestAnimationFrame(() => {
             if (queuedCanvasState) {
                 applyCanvasState(queuedCanvasState);
                 setActiveDesignId(designId || null);
+                setIsSidebarOpen(false);
+                const forceW = presetWidth > 0 && presetHeight > 0 ? presetWidth : (queuedCanvasState.config?.width || 0);
+                const forceH = presetWidth > 0 && presetHeight > 0 ? presetHeight : (queuedCanvasState.config?.height || 0);
+                if (forceW > 0 && forceH > 0) {
+                    setConfig((prev) => ({ ...prev, width: forceW, height: forceH }));
+                }
             } else if (queuedPreset) {
                 setConfig((prev) => ({
                     ...prev,
@@ -579,10 +676,22 @@ export default function DesignConfiguratorPage({ params }) {
             if (statusMessage) {
                 setSaveStatus({ type: 'success', message: statusMessage });
             }
-        });
-
-        return () => window.cancelAnimationFrame(frameId);
+        })();
     }, [applyCanvasState, quoteKey, searchParams]);
+
+    // Ensure URL preset dimensions (Multiple Copy) are applied when opening a design with presetW/presetH
+    const presetW = toPositiveNumber(searchParams.get('presetW'), 0);
+    const presetH = toPositiveNumber(searchParams.get('presetH'), 0);
+    const appliedPresetKeyRef = useRef('');
+    useEffect(() => {
+        if (presetW <= 0 || presetH <= 0) return;
+        const designId = searchParams.get('designId');
+        if (!designId) return;
+        const key = `${designId}-${presetW}-${presetH}`;
+        if (appliedPresetKeyRef.current === key) return;
+        appliedPresetKeyRef.current = key;
+        setConfig((prev) => ({ ...prev, width: presetW, height: presetH }));
+    }, [presetW, presetH, searchParams]);
 
     const handleApply = () => {
         const { isValid, normalized } = validateRequiredFields(config);
@@ -595,6 +704,39 @@ export default function DesignConfiguratorPage({ params }) {
         setIsSidebarOpen(false);
         setSaveStatus(null);
     };
+
+    // Get node at path (path = array of child indices; [] = root)
+    const getNodeAtPath = useCallback((node, path) => {
+        if (!path || path.length === 0) return node;
+        const [idx, ...rest] = path;
+        if (node.children && typeof idx === 'number' && idx >= 0 && idx < node.children.length) {
+            return getNodeAtPath(node.children[idx], rest);
+        }
+        return null;
+    }, []);
+
+    // Get parent of the node at path, and path to that parent. Parent may be split-vertical, split-horizontal, split-diagonal, or sliding.
+    const getParentSplit = useCallback((structure, panelPath) => {
+        if (!panelPath || panelPath.length === 0) return null;
+        const pathToParent = panelPath.slice(0, -1);
+        const parent = getNodeAtPath(structure, pathToParent);
+        if (!parent || !parent.children) return null;
+        const isSplit = ['split-vertical', 'split-horizontal', 'split-diagonal', 'sliding'].includes(parent.type);
+        return isSplit ? { parent, pathToParent, childIndex: panelPath[panelPath.length - 1] } : null;
+    }, [getNodeAtPath]);
+
+    // Replace node at path (path = indices; [] = replace root)
+    const replaceNodeAtPath = useCallback((node, path, newNode) => {
+        if (!path || path.length === 0) return newNode;
+        const [idx, ...rest] = path;
+        if (!node.children || typeof idx !== 'number' || idx < 0 || idx >= node.children.length) return node;
+        return {
+            ...node,
+            children: node.children.map((child, i) =>
+                i === idx ? replaceNodeAtPath(child, rest, newNode) : child
+            ),
+        };
+    }, []);
 
     // Helper function to find and update a specific panel in the tree
     const updatePanelInTree = (node, targetPath, newNode) => {
@@ -879,6 +1021,70 @@ export default function DesignConfiguratorPage({ params }) {
         setSelectedPanelPath(panelPath);
     };
 
+    // Structure editing: change split ratios (vertical/horizontal)
+    const handleRatioChangeApply = useCallback((pathToParent, newRatios) => {
+        const sum = newRatios.reduce((a, b) => a + b, 0);
+        if (sum <= 0) return;
+        const normalized = newRatios.map((r) => r / sum);
+        pushStructure((prev) => {
+            const parent = getNodeAtPath(prev, pathToParent);
+            if (!parent || !parent.ratios || parent.ratios.length !== normalized.length) return prev;
+            return replaceNodeAtPath(prev, pathToParent, { ...parent, ratios: normalized });
+        });
+    }, [getNodeAtPath, replaceNodeAtPath, pushStructure]);
+
+    // Structure editing: collapse split to single panel
+    const handleCollapseSplitRequest = useCallback((pathToParent) => {
+        setCollapseConfirmPath(pathToParent);
+    }, []);
+
+    const handleCollapseSplitConfirm = useCallback(() => {
+        if (collapseConfirmPath === null) return;
+        const parent = getNodeAtPath(windowStructure, collapseConfirmPath);
+        if (!parent || !parent.children || parent.children.length === 0) {
+            setCollapseConfirmPath(null);
+            return;
+        }
+        const firstChild = parent.children[0];
+        const newId = firstChild.type === 'glass' ? firstChild.id : getNextPanelId();
+        const singlePanel = { type: 'glass', id: newId };
+        pushStructure((prev) => replaceNodeAtPath(prev, collapseConfirmPath, singlePanel));
+        setSelectedPanelId(singlePanel.id);
+        setSelectedPanelPath([...collapseConfirmPath, 0]);
+        setCollapseConfirmPath(null);
+    }, [collapseConfirmPath, windowStructure, getNodeAtPath, replaceNodeAtPath, pushStructure, getNextPanelId]);
+
+    const handleCollapseSplitCancel = useCallback(() => {
+        setCollapseConfirmPath(null);
+    }, []);
+
+    // Structure editing: diagonal start/end points (normalized 0–1)
+    const handleDiagonalChange = useCallback((pathToParent, startPoint, endPoint) => {
+        pushStructure((prev) => {
+            const parent = getNodeAtPath(prev, pathToParent);
+            if (!parent || parent.type !== 'split-diagonal') return prev;
+            return replaceNodeAtPath(prev, pathToParent, {
+                ...parent,
+                startPoint: startPoint ?? parent.startPoint,
+                endPoint: endPoint ?? parent.endPoint,
+            });
+        });
+    }, [getNodeAtPath, replaceNodeAtPath, pushStructure]);
+
+    // Structure editing: sliding sash direction
+    const handleSashDirectionChange = useCallback((pathToPanel, direction) => {
+        const pathToParent = pathToPanel.slice(0, -1);
+        const childIndex = pathToPanel[pathToPanel.length - 1];
+        pushStructure((prev) => {
+            const parent = getNodeAtPath(prev, pathToParent);
+            if (!parent || parent.type !== 'sliding' || !parent.children) return prev;
+            const updatedChildren = parent.children.map((child, i) =>
+                i === childIndex ? { ...child, sashDirection: direction } : child
+            );
+            return replaceNodeAtPath(prev, pathToParent, { ...parent, children: updatedChildren });
+        });
+    }, [getNodeAtPath, replaceNodeAtPath, pushStructure]);
+
     // Apply an add-on overlay to a glass panel (sets addon property without changing structure)
     const applyAddonToPanel = (addonType, panelPath, addonSpec) => {
         const setAddon = (node, path) => {
@@ -1074,6 +1280,12 @@ export default function DesignConfiguratorPage({ params }) {
                 return next;
             });
         }
+        // For revision, store as number
+        if (name === 'revision') {
+            const parsed = toPositiveNumber(Number(value), 1);
+            setConfig(prev => ({ ...prev, [name]: parsed }));
+            return;
+        }
         // For width/height, parse feet notation on blur (let user type freely)
         setConfig(prev => ({ ...prev, [name]: value }));
     };
@@ -1095,23 +1307,23 @@ export default function DesignConfiguratorPage({ params }) {
         setGlassSearch('');
     };
 
-    const handleSaveDesign = useCallback(() => {
+    const handleSaveDesign = useCallback(async () => {
         try {
             const { isValid, normalized } = validateRequiredFields(config);
             if (!isValid) {
                 setIsSidebarOpen(true);
                 setSaveStatus({ type: 'error', message: 'Please complete required fields' });
-                return;
+                return false;
             }
 
-            const savedRaw = localStorage.getItem(SAVED_DESIGNS_STORAGE_KEY);
-            const savedMap = savedRaw ? JSON.parse(savedRaw) : {};
-            const existingDesigns = Array.isArray(savedMap[quoteKey]) ? savedMap[quoteKey] : [];
+            const existingDesigns = await getDesigns(quoteKey);
+            const thumbnail = canvasRef.current?.exportImage?.({ pixelRatio: 1 });
             const designRecord = buildDesignRecord({
                 config: normalized,
                 windowStructure,
                 frameFinishBySide,
                 fallbackNameIndex: existingDesigns.length + 1,
+                thumbnail,
             });
 
             const normalizedRecord = activeDesignId
@@ -1128,24 +1340,20 @@ export default function DesignConfiguratorPage({ params }) {
                     : [normalizedRecord, ...existingDesigns]
                 : [normalizedRecord, ...existingDesigns];
 
-            localStorage.setItem(
-                SAVED_DESIGNS_STORAGE_KEY,
-                JSON.stringify({
-                    ...savedMap,
-                    [quoteKey]: nextDesigns
-                })
-            );
+            await saveDesigns(quoteKey, nextDesigns);
 
             setConfig((prev) => ({ ...prev, ...normalized }));
             setActiveDesignId(normalizedRecord.id);
             setSaveStatus({ type: 'success', message: activeDesignId ? 'Updated' : 'Saved' });
+            return true;
         } catch (error) {
             console.error('Failed to save design', error);
             setSaveStatus({ type: 'error', message: 'Save failed' });
+            return false;
         }
     }, [activeDesignId, config, frameFinishBySide, quoteKey, validateRequiredFields, windowStructure]);
 
-    const handleSaveToCatalog = useCallback(() => {
+    const handleSaveToCatalog = useCallback(async () => {
         try {
             const { isValid, normalized } = validateRequiredFields(config);
             if (!isValid) {
@@ -1154,9 +1362,7 @@ export default function DesignConfiguratorPage({ params }) {
                 return;
             }
 
-            const savedRaw = localStorage.getItem(SAVED_CATALOG_STORAGE_KEY);
-            const existingCatalog = savedRaw ? JSON.parse(savedRaw) : [];
-            const catalogList = Array.isArray(existingCatalog) ? existingCatalog : [];
+            const catalogList = await getCatalogItems();
 
             const designRecord = buildDesignRecord({
                 config: normalized,
@@ -1173,10 +1379,7 @@ export default function DesignConfiguratorPage({ params }) {
                 template: deepClone(designRecord.canvas),
             };
 
-            localStorage.setItem(
-                SAVED_CATALOG_STORAGE_KEY,
-                JSON.stringify([catalogRecord, ...catalogList])
-            );
+            await addCatalogItem(catalogRecord);
 
             setConfig((prev) => ({ ...prev, ...normalized }));
             setSaveStatus({ type: 'success', message: 'Saved to catalog' });
@@ -1186,19 +1389,197 @@ export default function DesignConfiguratorPage({ params }) {
         }
     }, [config, frameFinishBySide, validateRequiredFields, windowStructure]);
 
+    const handleDuplicateDesign = useCallback(async () => {
+        try {
+            const existingDesigns = await getDesigns(quoteKey);
+            const designRecord = buildDesignRecord({
+                config: { ...config, ref: (config.ref || 'Design') + ' (copy)', revision: (config.revision || 1) },
+                windowStructure,
+                frameFinishBySide,
+                fallbackNameIndex: existingDesigns.length + 1,
+            });
+            const nextDesigns = [...existingDesigns, designRecord];
+            await saveDesigns(quoteKey, nextDesigns);
+            applyCanvasState(designRecord.canvas);
+            setActiveDesignId(designRecord.id);
+            setConfig(designRecord.canvas?.config || config);
+            setSaveStatus({ type: 'success', message: 'Design duplicated' });
+        } catch (error) {
+            console.error('Failed to duplicate design', error);
+            setSaveStatus({ type: 'error', message: 'Duplicate failed' });
+        }
+    }, [config, quoteKey, windowStructure, frameFinishBySide, applyCanvasState]);
+
     const canvasWidth = Math.max(1, Number(config.width) || 1500);
     const canvasHeight = Math.max(1, Number(config.height) || 1500);
+
+    const handlePrint = useCallback(() => {
+        const dataURL = canvasRef.current?.exportImage?.();
+        if (!dataURL) return;
+        const w = window.open('', '_blank');
+        if (!w) return;
+        w.document.write(`
+            <!DOCTYPE html><html><head><title>Print Design - ${config.ref || 'Design'}</title></head>
+            <body style="margin:16px;font-family:Inter,sans-serif;">
+                <h2 style="margin-bottom:8px;">${config.ref || 'Design'} ${config.name ? `– ${config.name}` : ''}</h2>
+                <p style="color:#64748b;margin-bottom:16px;">${canvasWidth} × ${canvasHeight} mm · Qty: ${config.qty}</p>
+                <img src="${dataURL}" style="max-width:100%;height:auto;" />
+            </body></html>
+        `);
+        w.document.close();
+        w.focus();
+        setTimeout(() => { w.print(); w.close(); }, 250);
+    }, [config.ref, config.name, config.qty, canvasWidth, canvasHeight]);
 
     return (
         <div style={{
             display: 'flex',
             flexDirection: 'column',
             height: '100vh',
-            width: '100vw',
-            backgroundColor: '#f8fafc', // Light background for CAD
-            color: '#334155', // Dark text
-            fontFamily: 'Inter, sans-serif'
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            color: '#334155',
+            fontFamily: 'Inter, sans-serif',
+            ...(isFullScreenCanvas ? { position: 'fixed', inset: 0, zIndex: 1000 } : {}),
         }}>
+
+            {/* ─── Beautiful Top Snackbar ─── */}
+            <style>{`
+                @keyframes snackSlideDown {
+                    0%   { opacity: 0; transform: translateY(-28px) scale(0.96); }
+                    60%  { opacity: 1; transform: translateY(4px)  scale(1.01); }
+                    100% { opacity: 1; transform: translateY(0)     scale(1); }
+                }
+                @keyframes snackSlideUp {
+                    0%   { opacity: 1; transform: translateY(0)     scale(1); }
+                    100% { opacity: 0; transform: translateY(-24px) scale(0.96); }
+                }
+                @keyframes snackProgress {
+                    from { width: 100%; }
+                    to   { width: 0%; }
+                }
+                @keyframes snackShimmer {
+                    0%   { background-position: -200% center; }
+                    100% { background-position: 200%  center; }
+                }
+            `}</style>
+
+            {saveStatus && (
+                <div
+                    key={saveStatus.message + saveStatus.type}
+                    style={{
+                        position: 'fixed',
+                        top: '18px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 99999,
+                        animation: snackbarVisible
+                            ? 'snackSlideDown 0.45s cubic-bezier(0.16,1,0.3,1) forwards'
+                            : 'snackSlideUp 0.35s cubic-bezier(0.4,0,1,1) forwards',
+                        pointerEvents: 'none',
+                        minWidth: '280px',
+                        maxWidth: '420px',
+                    }}
+                >
+                    {/* Main pill */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '13px 18px',
+                        borderRadius: '14px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        background: saveStatus.type === 'success'
+                            ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 60%, #065f46 100%)'
+                            : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 60%, #7f1d1d 100%)',
+                        boxShadow: saveStatus.type === 'success'
+                            ? '0 8px 32px rgba(13,148,136,0.45), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)'
+                            : '0 8px 32px rgba(220,38,38,0.45), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                    }}>
+                        {/* Shimmer overlay */}
+                        <div style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.08) 50%, transparent 80%)',
+                            backgroundSize: '200% auto',
+                            animation: 'snackShimmer 2.5s linear infinite',
+                            pointerEvents: 'none',
+                        }} />
+
+                        {/* Icon circle */}
+                        <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: 'rgba(255,255,255,0.18)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            border: '1px solid rgba(255,255,255,0.2)',
+                        }}>
+                            {saveStatus.type === 'success' ? (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            ) : (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            )}
+                        </div>
+
+                        {/* Text block */}
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: 'white', letterSpacing: '0.2px' }}>
+                                {saveStatus.type === 'success' ? 'Design Saved!' : 'Save Failed'}
+                            </div>
+                            <div style={{ fontSize: '11.5px', color: 'rgba(255,255,255,0.8)', marginTop: '1px', fontWeight: '500' }}>
+                                {saveStatus.message === 'Updated'
+                                    ? 'Your changes have been updated successfully.'
+                                    : saveStatus.message === 'Saved'
+                                        ? 'Design saved to your project.'
+                                        : saveStatus.message === 'Saved to catalog'
+                                            ? 'Design added to catalog.'
+                                            : saveStatus.message === 'Design duplicated'
+                                                ? 'A copy of this design was created.'
+                                                : saveStatus.message
+                                }
+                            </div>
+                        </div>
+
+                        {/* Tiny save icon */}
+                        {saveStatus.type === 'success' && (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                                <polyline points="17 21 17 13 7 13 7 21" />
+                                <polyline points="7 3 7 8 15 8" />
+                            </svg>
+                        )}
+
+                        {/* Progress bar */}
+                        <div style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            height: '3px',
+                            width: '100%',
+                            background: 'rgba(255,255,255,0.15)',
+                        }}>
+                            <div style={{
+                                height: '100%',
+                                background: 'rgba(255,255,255,0.55)',
+                                borderRadius: '0 2px 2px 0',
+                                animation: 'snackProgress 3.5s linear forwards',
+                                boxShadow: '0 0 6px rgba(255,255,255,0.4)',
+                            }} />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Top Header */}
             <div style={{
@@ -1208,8 +1589,8 @@ export default function DesignConfiguratorPage({ params }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0 20px',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                padding: '0 24px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     {/* Logo / Back */}
@@ -1232,7 +1613,7 @@ export default function DesignConfiguratorPage({ params }) {
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>
-                                {config.ref || '--'} <span style={{ color: '#94a3b8', margin: '0 8px' }}>:</span> Qty: {config.qty}
+                                {config.ref || '--'} <span style={{ color: '#94a3b8', margin: '0 4px' }}>·</span> Rev {config.revision ?? 1} <span style={{ color: '#94a3b8', margin: '0 8px' }}>:</span> Qty: {config.qty}
                             </div>
                             <div style={{ fontSize: '11px', color: '#64748b' }}>
                                 Location: {config.location || '-'}
@@ -1240,65 +1621,135 @@ export default function DesignConfiguratorPage({ params }) {
                         </div>
                     )}
 
-                    <button style={{ border: 'none', background: 'none', color: '#64748b', cursor: 'pointer' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                    </button>
+                    {isFullScreenCanvas ? (
+                        <button
+                            onClick={() => setIsFullScreenCanvas(false)}
+                            style={{ padding: '8px 14px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 21H5a2 2 0 0 1-2-2v-3m0 0V5a2 2 0 0 1 2-2h3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3m18 0h-3a2 2 0 0 0-2 2v-3" /></svg>
+                            Exit full screen
+                        </button>
+                    ) : (
+                        <button style={{ border: 'none', background: 'none', color: '#64748b', cursor: 'pointer' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        </button>
+                    )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <button style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>
-                        <span style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%' }}></span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                        </svg>
-                    </button>
-
-                    <div style={{ display: 'flex', background: '#3b82f6', borderRadius: '6px', overflow: 'hidden' }}>
-                        <button style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', fontWeight: '500', fontSize: '13px', cursor: 'pointer' }}>
-                            {viewMode === 'outside' ? 'Outside' : 'Inside'}
-                        </button>
+                    {/* Save dropdown */}
+                    <div style={{ position: 'relative' }}>
                         <button
-                            onClick={handleSaveDesign}
-                            style={{ padding: '8px 16px', background: '#2563eb', color: 'white', border: 'none', borderLeft: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '500' }}
+                            type="button"
+                            onClick={() => setSaveDropdownOpen((o) => !o)}
+                            style={{
+                                padding: '8px 14px',
+                                background: '#2563eb',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '13px',
+                                fontWeight: '500',
+                            }}
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                                <polyline points="7 3 7 8 15 8"></polyline>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                                <polyline points="17 21 17 13 7 13 7 21" />
+                                <polyline points="7 3 7 8 15 8" />
                             </svg>
                             Save
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="6 9 12 15 18 9"></polyline>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: saveDropdownOpen ? 'rotate(180deg)' : 'none' }}>
+                                <polyline points="6 9 12 15 18 9" />
                             </svg>
                         </button>
-                        <button
-                            onClick={handleSaveToCatalog}
-                            style={{ padding: '8px 16px', background: '#0f766e', color: 'white', border: 'none', borderLeft: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '500' }}
-                        >
-                            Save Catalog
-                        </button>
+                        {saveDropdownOpen && (
+                            <>
+                                <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setSaveDropdownOpen(false)} />
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    right: 0,
+                                    marginTop: '4px',
+                                    minWidth: '160px',
+                                    background: 'white',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                    zIndex: 9999,
+                                    overflow: 'hidden',
+                                }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => { handleSaveDesign(); setSaveDropdownOpen(false); }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px 14px',
+                                            textAlign: 'left',
+                                            border: 'none',
+                                            background: 'none',
+                                            fontSize: '13px',
+                                            color: '#1e293b',
+                                            cursor: 'pointer',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                    >
+                                        Save to project
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSaveDropdownOpen(false);
+                                            if (handleSaveDesign()) setSaveToDialogOpen(true);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px 14px',
+                                            textAlign: 'left',
+                                            border: 'none',
+                                            background: 'none',
+                                            fontSize: '13px',
+                                            color: '#1e293b',
+                                            cursor: 'pointer',
+                                            borderTop: '1px solid #f1f5f9',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                    >
+                                        Save to dialog
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
 
-                    {saveStatus && (
-                        <div style={{
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            color: saveStatus.type === 'success' ? '#16a34a' : '#dc2626'
-                        }}>
-                            {saveStatus.message}
-                        </div>
-                    )}
-
-                    <button style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                    </button>
-                    <button onClick={() => router.back()} style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                    {/* Close – icon in top right */}
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        title="Close"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '36px',
+                            height: '36px',
+                            padding: 0,
+                            background: '#f1f5f9',
+                            color: '#334155',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                        }}
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                     </button>
                 </div>
@@ -1417,6 +1868,69 @@ export default function DesignConfiguratorPage({ params }) {
                                 />
                             </div>
 
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Floor aperture (mm)</label>
+                                    <input
+                                        type="number"
+                                        name="floorApertureDistance"
+                                        value={config.floorApertureDistance ?? 900}
+                                        onChange={handleChange}
+                                        min={0}
+                                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Dimension units</label>
+                                    <select
+                                        name="dimensionUnits"
+                                        value={config.dimensionUnits ?? 'mm'}
+                                        onChange={handleChange}
+                                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', background: 'white' }}
+                                    >
+                                        <option value="mm">mm</option>
+                                        <option value="ft-in">ft-in</option>
+                                        <option value="m">m</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Revision</label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    name="revision"
+                                    value={config.revision ?? 1}
+                                    onChange={handleChange}
+                                    style={{ width: '80px', padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Product code (system)</label>
+                                    <input
+                                        type="text"
+                                        name="productCodeSystem"
+                                        value={config.productCodeSystem ?? ''}
+                                        onChange={handleChange}
+                                        placeholder="SKU / code"
+                                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Product code (glass)</label>
+                                    <input
+                                        type="text"
+                                        name="productCodeGlass"
+                                        value={config.productCodeGlass ?? ''}
+                                        onChange={handleChange}
+                                        placeholder="SKU / code"
+                                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                    />
+                                </div>
+                            </div>
+
                             <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px', position: 'relative' }} ref={glassDropdownRef}>
                                 <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '8px' }}>Selected glass</label>
                                 <button
@@ -1532,6 +2046,217 @@ export default function DesignConfiguratorPage({ params }) {
                                 </div>
                             </div>
 
+                            {/* Report / BOM */}
+                            {(() => {
+                                const bom = computeBOM(windowStructure, canvasWidth, canvasHeight);
+                                return (
+                                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowBOMSection((s) => !s)}
+                                            style={{
+                                                width: '100%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                padding: '8px 0',
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                color: '#1e293b',
+                                            }}
+                                        >
+                                            Report / BOM
+                                            <span style={{ transform: showBOMSection ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+                                        </button>
+                                        {showBOMSection && (
+                                            <div style={{ fontSize: '12px', color: '#475569', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                                                <div>Perimeter: <strong>{(bom.perimeterM || 0).toFixed(2)} m</strong></div>
+                                                <div>Area: <strong>{(bom.areaSqmt || 0).toFixed(3)} Sqmt</strong></div>
+                                                <div>Hardware: <strong>{bom.hardwareCount} unit(s)</strong></div>
+                                                <div style={{ marginTop: '4px' }}>Glass panes:</div>
+                                                <ul style={{ margin: 0, paddingLeft: '18px', maxHeight: '120px', overflowY: 'auto' }}>
+                                                    {bom.glassPanels.map((p, i) => (
+                                                        <li key={i}>{formatDimension(p.width, config.dimensionUnits ?? 'mm')} × {formatDimension(p.height, config.dimensionUnits ?? 'mm')}{p.shape ? ` (${p.shape})` : ''}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Structure editing: split ratios, collapse, diagonal, sash */}
+                            {selectedPanelId && (() => {
+                                const parentSplit = getParentSplit(windowStructure, selectedPanelPath);
+                                if (!parentSplit) return null;
+                                const { parent, pathToParent, childIndex } = parentSplit;
+
+                                if (parent.type === 'split-vertical' || parent.type === 'split-horizontal') {
+                                    const ratios = parent.ratios || [];
+                                    const isVertical = parent.type === 'split-vertical';
+                                    return (
+                                        <div key="structure-split" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+                                            <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b', marginBottom: '12px' }}>
+                                                Split ratios (%)
+                                            </div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                                                {ratios.map((r, i) => {
+                                                    const w = isVertical ? Math.round(canvasWidth * r) : canvasWidth;
+                                                    const h = isVertical ? canvasHeight : Math.round(canvasHeight * r);
+                                                    return (
+                                                        <div key={i} style={{ flex: '1 1 60px', minWidth: '60px' }}>
+                                                            <label style={{ fontSize: '11px', color: '#64748b' }}>Panel {i + 1}</label>
+                                                            <input
+                                                                type="number"
+                                                                min={5}
+                                                                max={95}
+                                                                value={Math.round(r * 100)}
+                                                                onChange={(e) => {
+                                                                    const val = Number(e.target.value);
+                                                                    if (Number.isNaN(val)) return;
+                                                                    const next = ratios.map((rr, j) => (j === i ? val / 100 : rr));
+                                                                    const sum = next.reduce((a, b) => a + b, 0);
+                                                                    const normalized = next.map((n) => n / sum);
+                                                                    handleRatioChangeApply(pathToParent, normalized);
+                                                                }}
+                                                                style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                                            />
+                                                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{formatDimension(w, config.dimensionUnits ?? 'mm')} × {formatDimension(h, config.dimensionUnits ?? 'mm')}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCollapseSplitRequest(pathToParent)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '8px 12px',
+                                                    fontSize: '12px',
+                                                    color: '#dc2626',
+                                                    background: '#fef2f2',
+                                                    border: '1px solid #fecaca',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                    fontWeight: '500',
+                                                }}
+                                            >
+                                                Collapse to single panel
+                                            </button>
+                                        </div>
+                                    );
+                                }
+
+                                if (parent.type === 'split-diagonal') {
+                                    const sp = parent.startPoint || { x: 0, y: 0 };
+                                    const ep = parent.endPoint || { x: 1, y: 1 };
+                                    return (
+                                        <div key="structure-diagonal" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+                                            <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b', marginBottom: '12px' }}>
+                                                Diagonal line (0–100%)
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                <div>
+                                                    <label style={{ fontSize: '11px', color: '#64748b' }}>Start X</label>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        max={100}
+                                                        value={Math.round(sp.x * 100)}
+                                                        onChange={(e) => {
+                                                            const v = Number(e.target.value) / 100;
+                                                            if (!Number.isFinite(v)) return;
+                                                            handleDiagonalChange(pathToParent, { ...sp, x: Math.max(0, Math.min(1, v)) }, null);
+                                                        }}
+                                                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ fontSize: '11px', color: '#64748b' }}>Start Y</label>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        max={100}
+                                                        value={Math.round(sp.y * 100)}
+                                                        onChange={(e) => {
+                                                            const v = Number(e.target.value) / 100;
+                                                            if (!Number.isFinite(v)) return;
+                                                            handleDiagonalChange(pathToParent, { ...sp, y: Math.max(0, Math.min(1, v)) }, null);
+                                                        }}
+                                                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ fontSize: '11px', color: '#64748b' }}>End X</label>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        max={100}
+                                                        value={Math.round(ep.x * 100)}
+                                                        onChange={(e) => {
+                                                            const v = Number(e.target.value) / 100;
+                                                            if (!Number.isFinite(v)) return;
+                                                            handleDiagonalChange(pathToParent, null, { ...ep, x: Math.max(0, Math.min(1, v)) });
+                                                        }}
+                                                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ fontSize: '11px', color: '#64748b' }}>End Y</label>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        max={100}
+                                                        value={Math.round(ep.y * 100)}
+                                                        onChange={(e) => {
+                                                            const v = Number(e.target.value) / 100;
+                                                            if (!Number.isFinite(v)) return;
+                                                            handleDiagonalChange(pathToParent, null, { ...ep, y: Math.max(0, Math.min(1, v)) });
+                                                        }}
+                                                        style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                if (parent.type === 'sliding') {
+                                    const child = parent.children && parent.children[childIndex];
+                                    const currentDir = child?.sashDirection || 'fixed';
+                                    return (
+                                        <div key="structure-sliding" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+                                            <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>
+                                                Sash direction
+                                            </div>
+                                            <select
+                                                value={currentDir}
+                                                onChange={(e) => handleSashDirectionChange(selectedPanelPath, e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '8px 10px',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid #e2e8f0',
+                                                    fontSize: '13px',
+                                                    background: 'white',
+                                                    color: '#1e293b',
+                                                }}
+                                            >
+                                                <option value="left">Left</option>
+                                                <option value="right">Right</option>
+                                                <option value="fixed">Fixed</option>
+                                                <option value="both">Both</option>
+                                            </select>
+                                        </div>
+                                    );
+                                }
+
+                                return null;
+                            })()}
+
                         </div>
 
                         <div style={{ padding: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '12px' }}>
@@ -1569,7 +2294,7 @@ export default function DesignConfiguratorPage({ params }) {
                     {!isSidebarOpen && (
                         <div style={{
                             position: 'absolute',
-                            left: '20px',
+                            left: '84px',
                             top: '20px',
                             backgroundColor: 'white',
                             padding: '12px 16px',
@@ -1600,6 +2325,7 @@ export default function DesignConfiguratorPage({ params }) {
                     )}
 
                     <WindowCanvas
+                        ref={canvasRef}
                         key={`canvas-${isOpeningMode ? `opening-${openingModeSession}` : `standard-${isCustomMullionMode ? 'cm' : 'base'}`}`}
                         width={canvasWidth}
                         height={canvasHeight}
@@ -1627,7 +2353,11 @@ export default function DesignConfiguratorPage({ params }) {
                         onViewModeChange={setViewMode}
                         frameFinishBySide={frameFinishBySide}
                         backgroundImageSrc={backgroundImageSrc}
+                        onSplitRatioChange={handleRatioChangeApply}
                         openingPolygon={config.openingPoints}
+                        showGrid={showGrid}
+                        showRuler={showRuler}
+                        floorApertureDistance={config.floorApertureDistance ?? 900}
                     />
                 </div>
             </div>
@@ -1708,6 +2438,16 @@ export default function DesignConfiguratorPage({ params }) {
                 direction={pendingPattern?.type?.includes('vertical') ? 'vertical' : 'horizontal'}
             />
 
+            {/* Select Casement System Modal (for opening designs) */}
+            <SelectCasementSystemModal
+                isOpen={isOpeningSystemModalOpen}
+                onClose={() => {
+                    setIsOpeningSystemModalOpen(false);
+                    setPendingOpeningPoints(null);
+                }}
+                onConfirm={handleOpeningSystemConfirm}
+            />
+
             {/* Select System Modal (for sliding designs) */}
             <SelectSystemModal
                 isOpen={isSelectSystemModalOpen}
@@ -1737,6 +2477,178 @@ export default function DesignConfiguratorPage({ params }) {
                 }}
                 onConfirm={handleLouverTypeConfirm}
             />
+
+            {/* Design report modal */}
+            {showReportModal && (() => {
+                const bom = computeBOM(windowStructure, canvasWidth, canvasHeight);
+                return (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            background: 'rgba(0,0,0,0.5)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 9999,
+                        }}
+                        onClick={() => setShowReportModal(false)}
+                    >
+                        <div
+                            style={{
+                                background: 'white',
+                                borderRadius: '12px',
+                                padding: '24px',
+                                maxWidth: '480px',
+                                width: '90%',
+                                maxHeight: '85vh',
+                                overflow: 'auto',
+                                boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1e293b' }}>Design report</h2>
+                                <button type="button" onClick={() => setShowReportModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#64748b' }}>×</button>
+                            </div>
+                            <div style={{ fontSize: '13px', color: '#334155', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div><strong>Ref</strong> {config.ref || '—'}</div>
+                                <div><strong>Name</strong> {config.name || '—'}</div>
+                                <div><strong>Dimensions</strong> {formatDimension(canvasWidth, config.dimensionUnits ?? 'mm')} × {formatDimension(canvasHeight, config.dimensionUnits ?? 'mm')}</div>
+                                <div><strong>Qty</strong> {config.qty}</div>
+                                <div><strong>Revision</strong> {config.revision ?? 1}</div>
+                                <div><strong>Floor aperture</strong> {formatDimension(config.floorApertureDistance ?? 900, config.dimensionUnits ?? 'mm')}</div>
+                                <div><strong>Product code (system)</strong> {config.productCodeSystem || '—'}</div>
+                                <div><strong>Product code (glass)</strong> {config.productCodeGlass || '—'}</div>
+                                <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0' }} />
+                                <div><strong>Perimeter</strong> {(bom.perimeterM || 0).toFixed(2)} m</div>
+                                <div><strong>Area</strong> {(bom.areaSqmt || 0).toFixed(3)} Sqmt</div>
+                                <div><strong>Hardware</strong> {bom.hardwareCount} unit(s)</div>
+                                <div><strong>Glass panes</strong></div>
+                                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                                    {bom.glassPanels.map((p, i) => (
+                                        <li key={i}>{formatDimension(p.width, config.dimensionUnits ?? 'mm')} × {formatDimension(p.height, config.dimensionUnits ?? 'mm')}{p.shape ? ` (${p.shape})` : ''}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Save to dialog confirmation */}
+            {saveToDialogOpen && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 9999,
+                    }}
+                    onClick={() => setSaveToDialogOpen(false)}
+                >
+                    <div
+                        style={{
+                            background: 'white',
+                            borderRadius: '12px',
+                            padding: '24px',
+                            minWidth: '280px',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>Design saved</div>
+                        <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>Your design has been saved successfully.</div>
+                        <button
+                            type="button"
+                            onClick={() => setSaveToDialogOpen(false)}
+                            style={{
+                                width: '100%',
+                                padding: '10px 16px',
+                                background: '#2563eb',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            OK
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Collapse split confirmation */}
+            {collapseConfirmPath !== null && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 9999,
+                    }}
+                    onClick={handleCollapseSplitCancel}
+                >
+                    <div
+                        style={{
+                            background: 'white',
+                            borderRadius: '12px',
+                            padding: '24px',
+                            maxWidth: '360px',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>
+                            Collapse to single panel?
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
+                            This will replace the split with one glass panel. This cannot be undone (use Undo to revert).
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button
+                                type="button"
+                                onClick={handleCollapseSplitCancel}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e2e8f0',
+                                    background: 'white',
+                                    color: '#64748b',
+                                    fontSize: '13px',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCollapseSplitConfirm}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    background: '#dc2626',
+                                    color: 'white',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Collapse
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );
